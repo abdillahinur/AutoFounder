@@ -145,9 +145,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   };
 
   const assets = (deck as any)?.meta?.themeAssets as { coverBg?: string; contentBg?: string; defaultText?: 'light'|'dark' } | undefined;
-  const textTone = (deck as any)?.meta?.textTone || (assets && assets.defaultText) || 'dark';
-  const textClass = textTone === 'light' ? 'text-white' : 'text-black';
-
+  
   // Compute and log the effective background chosen for each slide (helps catch missing assets or bad paths)
   try {
     const slideBgs: Array<{ idx: number; bg: string | null; useImage: boolean }> = slides.map((s, idx) => {
@@ -185,6 +183,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   const fallbackTone = (deck as any)?.meta?.textTone ?? (assets && assets.defaultText) ?? 'dark';
   const tone = useTextTone({ imageUrl: bgUrlForTone ?? undefined, fallback: fallbackTone });
   const toneClass = tone === 'light' ? 'text-white' : 'text-black';
+  const toneHex = tone === 'light' ? '#FFFFFF' : '#000000';
   // store the tone back onto the slide object in-memory so exporters can read it
   try { if (slideMeta) (slideMeta as any).textTone = tone; } catch (e) { /* ignore */ }
 
@@ -309,7 +308,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                         </div>
                       )}
 
-                      <div className={`relative p-6 ${toneClass} drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]`}>
+                      <div className={`relative p-6 ${toneClass} drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]`} style={{ color: toneHex }}>
                       {/* Cover slide: centered layout */}
                       {currentSlide === 0 ? (
                         <div className="h-full w-full flex flex-col items-center justify-center text-center px-8">
@@ -345,13 +344,13 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                           ) : null}
 
                           {/* Title uses the theme text color */}
-                          <h1 className={`text-4xl font-bold mb-6 ${textClass}`}>
+                          <h1 className={`text-4xl font-bold mb-6 ${toneClass}`}>
                             {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
                           </h1>
 
                           {/* Bullets - use themed text color */}
                           {Array.isArray((currentSlideData as any).bullets) && (
-                            <ul className="space-y-4">
+                            <ul className="space-y-4 list-disc marker:text-current">
                               {(currentSlideData as any).bullets.map((bullet: string, idx: number) => (
                                 <li key={idx} className="flex items-start">
                                   <div className="w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0 bg-current" />
@@ -514,7 +513,10 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M7 7h6v6H7z" />
+                    <path strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" d="M5 3h10l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+                  </svg>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">No Script Available</h3>
                   <p className="text-gray-600">
                     The presentation script wasn't generated for this deck. Try regenerating the deck to create a script.

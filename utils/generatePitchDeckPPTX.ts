@@ -62,8 +62,7 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
   const coverBg = suppliedAssets?.coverBg || defaultCover;
   const contentBg = suppliedAssets?.contentBg || defaultContent;
 
-  const textTone = (userInput?.meta && (userInput.meta as any).textTone) || (userInput?.textTone) || (suppliedAssets && suppliedAssets.defaultText) || 'dark';
-  const textColor = textTone === 'light' ? 'FFFFFF' : '000000';
+  const deckMetaTone = (userInput?.meta && (userInput.meta as any).textTone) || (userInput?.textTone) || (suppliedAssets && suppliedAssets.defaultText) || 'dark';
 
   // Cover slide
   const cover = deckTemplates.cover;
@@ -78,11 +77,16 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
   const coverStartupName = cover.fields.startupName;
   const coverOneLiner = cover.fields.oneLiner;
   // Centered cover layout; use theme text color for contrast
+  // Determine cover slide tone: prefer explicit slide level tone if provided in userInput.slides[0]
+  const coverSlideObj = (userInput?.slides && userInput.slides[0]) || null;
+  const coverTone = (coverSlideObj && (coverSlideObj as any).textTone) ?? deckMetaTone ?? 'dark';
+  const coverTextColor = coverTone === 'light' ? 'FFFFFF' : '000000';
+  const coverOutline = { outline: { color: coverTone === 'light' ? '000000' : 'FFFFFF', size: 1 } };
   coverSlide.addText(enhancedInput.startupName || coverStartupName?.placeholder || "[Startup Name]", {
-    x: 0.5, y: 1.8, fontSize: coverStartupName?.fontSize || 48, bold: true, color: textColor, align: "center", w: 9, h: 1.6
+    x: 0.5, y: 1.8, fontSize: coverStartupName?.fontSize || 48, bold: true, color: coverTextColor, align: "center", w: 9, h: 1.6, ...coverOutline
   });
   coverSlide.addText(enhancedInput.oneLiner || coverOneLiner?.placeholder || "[One-line Pitch]", {
-    x: 1, y: 3.2, fontSize: coverOneLiner?.fontSize || 28, color: textColor, align: "center", w: 8, h: 1.2
+    x: 1, y: 3.2, fontSize: coverOneLiner?.fontSize || 28, color: coverTextColor, align: "center", w: 8, h: 1.2, ...coverOutline
   });
 
   // Content slides
@@ -117,7 +121,7 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
   const header = slideHeaders[slideKey] || defaultHeaders[slideKey as keyof typeof defaultHeaders];
   // We'll only set the slide background if we don't add a content image below
     
-    // Try to get a relevant image for this slide
+  // Try to get a relevant image for this slide
     let imageAdded = false;
     try {
       const relevantImage = await getRelevantImage(slideKey, enhancedInput);
@@ -138,7 +142,7 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
       console.warn(`⚠️ Could not add image to ${slideKey} slide:`, error);
     }
     
-    // If we didn't add an image, apply the themed content background
+  // If we didn't add an image, apply the themed content background
     if (!imageAdded) {
       if (contentBg) {
         try { slide.background = { path: contentBg }; } catch (e) { console.warn('pptx content background failed', e); }
@@ -147,7 +151,14 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
       }
     }
 
-    // Adjust text width based on whether image was added
+  // Determine slide-level tone: try userInput.slides[index].textTone, else deck-level meta/theme
+  const slideIndex = slideOrder.indexOf(slideKey);
+  const slideObj = (userInput?.slides && userInput.slides[slideIndex]) || null;
+  const tone = (slideObj && (slideObj as any).textTone) ?? deckMetaTone ?? 'dark';
+  const TEXT = tone === 'light' ? 'FFFFFF' : '000000';
+  const outline = { outline: { color: tone === 'light' ? '000000' : 'FFFFFF', size: 1 } };
+
+  // Adjust text width based on whether image was added
     const textWidth = imageAdded ? 4.5 : 8; // Narrower if image present
 
     Object.entries(tmpl.fields).forEach(([field, meta]) => {
@@ -157,8 +168,9 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
       const textContent = enhancedInput[field] || m.placeholder || `[${field}]`;
       const defaultTextOptions = {
         fontSize: m.fontSize || 24,
-        color: textColor || (m.color || "#444444"),
+        color: TEXT || (m.color || "#444444"),
         bold: m.fontWeight === "bold",
+        ...outline,
       };
       
       // Format as proper bullet points with markdown bold support

@@ -6,6 +6,8 @@ import type { Category, ThemeKey } from '../src/lib/categoryMap';
 export type Slide = {
 	title: string;
 	bullets: string[];
+	// Optional per-slide text tone; may be set later by the viewer/exporter
+	textTone?: 'light' | 'dark';
 };
 
 export type ThemeConfig = { coverBg: string; contentBg: string; defaultText: 'light' | 'dark' };
@@ -79,6 +81,7 @@ export function generateDeckJSON(
 		if (opts.category) deck.meta.category = opts.category;
 		if (opts.theme) deck.meta.theme = opts.theme;
 		if (opts.themeAssets) deck.meta.themeAssets = opts.themeAssets;
+		// Default deck-level text tone from opts or themeAssets; do not modify slide-level textTone here.
 		deck.meta.textTone = opts.textTone ?? opts.themeAssets?.defaultText ?? (deck.meta.textTone as any) ?? 'dark';
 	}
 

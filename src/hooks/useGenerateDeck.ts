@@ -180,6 +180,7 @@ export type SlideInput = {
   heading: string;
   bullets?: string[];
   imageUrl?: string;
+  textTone?: 'light' | 'dark';
 };
 
 export type FormPayload = {
@@ -248,9 +249,10 @@ export function buildDeterministicDeck(payload: FormPayload): Deck {
     createdAt,
     title: payload.title,
     slides: payload.slides.map((s) => ({
-      heading: s.heading,
-      bullets: s.bullets ?? [],
-      imageUrl: s.imageUrl,
+  heading: s.heading,
+  bullets: s.bullets ?? [],
+  imageUrl: s.imageUrl,
+  textTone: (s as any).textTone,
     })),
     meta: {
       version: 1,
