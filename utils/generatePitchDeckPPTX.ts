@@ -1,5 +1,6 @@
 import pptxgen from "pptxgenjs";
 import { deckTemplates } from "../lib/deckTemplates";
+import { enhanceDeckContent, generateSlideHeaders } from "../src/lib/ai/gemini";
 
 // Define a type for slide field metadata
 interface SlideFieldMeta {
@@ -10,9 +11,47 @@ interface SlideFieldMeta {
   color: string;
 }
 
+// Helper to split text into bullet points
+function formatBulletPoints(text: string, defaultOptions: any): any[] {
+  // Split by line breaks and filter out empty lines
+  const lines = text.split('\n').filter(line => line.trim());
+  
+  return lines.map((line, index) => {
+    // Remove any asterisks or bullet symbols from the beginning of the line
+    const cleanLine = line.trim().replace(/^[\*\•\-\+]\s*/, '');
+    
+    return {
+      text: cleanLine,
+      options: {
+        ...defaultOptions,
+        bullet: true, // Add bullet point
+        indentLevel: 0
+      }
+    };
+  });
+}
+
 // Generate and download a PowerPoint deck in the browser (no backend required)
-export function generatePitchDeckPPTX(userInput: Record<string, string>, outputFileName = "PitchDeck.pptx") {
+export async function generatePitchDeckPPTX(userInput: Record<string, string>, outputFileName = "PitchDeck.pptx") {
   const pptx = new pptxgen();
+  
+  // Enhance content with AI if API key is available
+  let enhancedInput = userInput;
+  let slideHeaders: Record<string, string> = {};
+  const geminiKey = localStorage.getItem('gemini_api_key') || import.meta.env?.VITE_GEMINI_API_KEY;
+  if (geminiKey) {
+    try {
+      console.log('🤖 Enhancing content with Gemini AI...');
+      // Set the API key for this session
+      (globalThis as any).GEMINI_API_KEY = geminiKey;
+      enhancedInput = await enhanceDeckContent(userInput);
+      slideHeaders = await generateSlideHeaders(userInput);
+      console.log('✅ Content enhanced successfully');
+    } catch (error) {
+      console.warn('⚠️ AI enhancement failed, using original content:', error);
+      enhancedInput = userInput;
+    }
+  }
 
   // Use public paths for images so they work in the browser
   const coverBg = "/images/bg-cover-ai-infra-v1.png";
@@ -25,12 +64,12 @@ export function generatePitchDeckPPTX(userInput: Record<string, string>, outputF
   // Defensive: check for field existence and use correct keys
   const coverStartupName = cover.fields.startupName;
   const coverOneLiner = cover.fields.oneLiner;
-  coverSlide.addText(userInput.startupName || coverStartupName?.placeholder || "[Startup Name]", {
-    x: 1, y: 2, fontSize: coverStartupName?.fontSize || 40, bold: true, color: coverStartupName?.color || "#222",
+  coverSlide.addText(enhancedInput.startupName || coverStartupName?.placeholder || "[Startup Name]", {
+    x: 1, y: 2, fontSize: coverStartupName?.fontSize || 40, bold: true, color: coverStartupName?.color || "#222222",
     align: "center", w: 8, h: 1
   });
-  coverSlide.addText(userInput.oneLiner || coverOneLiner?.placeholder || "[One-line Pitch]", {
-    x: 1, y: 3, fontSize: coverOneLiner?.fontSize || 28, color: coverOneLiner?.color || "#888",
+  coverSlide.addText(enhancedInput.oneLiner || coverOneLiner?.placeholder || "[One-line Pitch]", {
+    x: 1, y: 3, fontSize: coverOneLiner?.fontSize || 28, color: coverOneLiner?.color || "#888888",
     align: "center", w: 8, h: 1
   });
 
@@ -39,17 +78,46 @@ export function generatePitchDeckPPTX(userInput: Record<string, string>, outputF
     "problem", "solution", "market", "business_model", "traction", "team", "ask"
   ] as const;
   type SlideKey = typeof slideOrder[number];
+  // Default slide headers (fallback if AI fails)
+  const defaultHeaders = {
+    problem: "The Problem",
+    solution: "Our Solution", 
+    market: "Market Opportunity",
+    business_model: "Business Model",
+    traction: "Traction & Metrics",
+    team: "Our Team",
+    ask: "The Ask"
+  };
+
   slideOrder.forEach((slideKey) => {
     const tmpl = deckTemplates[slideKey as SlideKey];
     if (!tmpl) return; // Defensive: skip if template missing
     const slide = pptx.addSlide();
     slide.background = { path: contentBg };
+    
+    // Add slide header (AI-generated or default)
+    const header = slideHeaders[slideKey] || defaultHeaders[slideKey as keyof typeof defaultHeaders];
+    slide.addText(header, {
+      x: 1, y: 0.5, fontSize: 32, color: "#2563eb", bold: true, w: 8, h: 0.8
+    });
+    
     Object.entries(tmpl.fields).forEach(([field, meta], idx) => {
       const m = meta as SlideFieldMeta;
       // Defensive: skip if meta is undefined
       if (!m) return;
-      slide.addText(userInput[field] || m.placeholder || `[${field}]`, {
-        x: 1, y: 1 + idx, fontSize: m.fontSize || 24, color: m.color || "#444", bold: m.fontWeight === "bold", w: 8, h: 1
+      
+      const textContent = enhancedInput[field] || m.placeholder || `[${field}]`;
+      const defaultTextOptions = {
+        fontSize: m.fontSize || 24,
+        color: m.color || "#444444",
+        bold: m.fontWeight === "bold",
+      };
+      
+      // Format as proper bullet points with markdown bold support
+      const bulletPoints = formatBulletPoints(textContent, defaultTextOptions);
+      
+      slide.addText(bulletPoints, {
+        x: 1, y: 1.5, w: 8, h: 4 // Single text box with all bullet points
       });
     });
   });

@@ -10,14 +10,14 @@ export const deckTemplates = {
         position: "center",
         fontSize: 48,
         fontWeight: "bold",
-        color: "#222"
+        color: "#222222"
       },
       oneLiner: {
         placeholder: "[One-line Pitch]",
         position: "center-below",
         fontSize: 32,
         fontWeight: "normal",
-        color: "#888"
+        color: "#888888"
       }
     },
     background: null
@@ -29,7 +29,7 @@ export const deckTemplates = {
         placeholder: "[Problem Description]",
         position: "center",
         fontSize: 28,
-        color: "#444"
+        color: "#444444"
       }
     },
     background: null
@@ -41,7 +41,7 @@ export const deckTemplates = {
         placeholder: "[Solution Description]",
         position: "center",
         fontSize: 28,
-        color: "#444"
+        color: "#444444"
       }
     },
     background: null
@@ -53,7 +53,7 @@ export const deckTemplates = {
         placeholder: "[Market Size]",
         position: "center",
         fontSize: 28,
-        color: "#444"
+        color: "#444444"
       }
     },
     background: null
@@ -65,7 +65,7 @@ export const deckTemplates = {
         placeholder: "[Business Model Description]",
         position: "center",
         fontSize: 28,
-        color: "#444"
+        color: "#444444"
       }
     },
     background: null
@@ -77,7 +77,7 @@ export const deckTemplates = {
         placeholder: "[Traction or Roadmap Description]",
         position: "center",
         fontSize: 28,
-        color: "#444"
+        color: "#444444"
       }
     },
     background: null
@@ -89,7 +89,7 @@ export const deckTemplates = {
         placeholder: "[Team Members]",
         position: "center",
         fontSize: 28,
-        color: "#444"
+        color: "#444444"
       }
     },
     background: null
@@ -101,7 +101,7 @@ export const deckTemplates = {
         placeholder: "[Ask Description]",
         position: "center",
         fontSize: 28,
-        color: "#444"
+        color: "#444444"
       }
     },
     background: null

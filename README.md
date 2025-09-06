@@ -9,6 +9,7 @@ Visit [AutoFounder](https://autofounder.com) to create your pitch deck in 60 sec
 ## ✨ Key Features
 
 - **⚡ 60-Second Pitch Deck Creation** - From idea to investor-ready deck
+- **🤖 AI-Powered Content Enhancement** - Gemini AI improves your pitch content
 - **🎨 Premium Multi-Step Form** - Clean, Linear/Notion-inspired UI with validation
 - **📊 Smart Progress Tracking** - Visual progress bar and step navigation
 - **🔒 Form Validation** - Cannot advance without completing required fields
@@ -25,6 +26,7 @@ AutoFounder is built with a modern, production-ready stack:
 - **Vite**: Fast development server and build tool for React projects.
 - **TailwindCSS**: Utility-first CSS framework for rapid UI development.
 - **pptxgenjs**: PowerPoint (.pptx) export of pitch decks, fully in-browser.
+- **@google/generative-ai**: Gemini AI integration for content enhancement.
 - **framer-motion**: Animations and transitions for UI components.
 - **lucide-react**: Icon library for modern React apps.
 - **clsx**: Utility for conditionally joining classNames.
@@ -117,10 +119,11 @@ yarn lint
 
 1. **📝 Multi-Step Form** - Users fill out a beautiful, validated form with 7 required questions + optional details
 2. **✅ Smart Validation** - Cannot advance without completing required fields, with visual progress tracking
-3. **🎨 Template Mapping** - Form data is mapped to JSON slide templates (`lib/deckTemplates.ts`)
-4. **⚡ Instant Generation** - `utils/generatePitchDeckPPTX.ts` creates PowerPoint deck in-browser using pptxgenjs
-5. **💾 Immediate Download** - Deck downloads instantly with custom backgrounds from `/public/images/`
-6. **🔐 Privacy-First** - No backend/API calls; all processing happens client-side
+3. **🤖 AI Enhancement** - Gemini AI improves content quality and fills missing sections (optional)
+4. **🎨 Template Mapping** - Form data is mapped to JSON slide templates (`lib/deckTemplates.ts`)
+5. **⚡ Instant Generation** - `utils/generatePitchDeckPPTX.ts` creates PowerPoint deck in-browser using pptxgenjs
+6. **💾 Immediate Download** - Deck downloads instantly with custom backgrounds from `/public/images/`
+7. **🔐 Privacy-First** - No backend/API calls; all processing happens client-side
 
 ## 🎨 UI/UX Features
 

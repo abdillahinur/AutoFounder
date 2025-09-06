@@ -206,7 +206,7 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
     try {
       const { generatePitchDeckPPTX } = await import("../../utils/generatePitchDeckPPTX");
       console.log("Generating deck...", formData);
-      generatePitchDeckPPTX(formData, "PitchDeck.pptx");
+      await generatePitchDeckPPTX(formData, "PitchDeck.pptx");
       addToast({
         type: 'success',
         title: 'Deck Generated!',
