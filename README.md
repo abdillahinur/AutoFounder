@@ -154,18 +154,37 @@ yarn lint
 ```
 
 ## 🔄 How It Works
+ - Client-first demo flow: the intake modal delegates deck creation to a client hook (`src/hooks/useGenerateDeck.ts`). That hook opens a placeholder window synchronously, optionally enhances the form payload with Gemini (if available), builds a deterministic deck JSON, persists it to localStorage (or encodes it in the URL when storage is blocked), broadcasts it to other tabs, and navigates the placeholder to the viewer.
 
- - **💾 Instant PowerPoint Export** - Download as .pptx file immediately (client-side)
- - **🎯 Custom Templates** - Multiple deck themes and backgrounds
- - **🧩 Deterministic Deck JSON** - A local, deterministic `generateDeckJSON` helper (no LLM) produces the deck JSON used by the viewer and PPTX generator for fast demos.
+ - Viewer entry points supported:
+    - `/#deck=<id>` — viewer reads `localStorage.getItem('deck:<id>')` and falls back to listening on `BroadcastChannel('deck:<id>')` for ~1200ms if the deck isn't in storage yet.
+    - `/#deckdata=<base64>` — inline, URL-safe base64 encoded deck JSON (used when localStorage writes are blocked).
 
-## Quick demo (no backend)
+ - `src/components/DeckViewer.tsx` renders the deck on-screen (cover, slides, optional images, bullets) and provides a Download button that dynamically imports `pptxgenjs` and creates a `.pptx` in-browser. The exporter prefers readable black/white text (no semi-opaque overlay boxes) so exported slides remain editable.
 
-- Open the site locally with `npm run dev`.
-- Click "Generate Your Deck" to open the multi-step form.
-- Submit the form — the app creates a deterministic deck JSON, stores it in `sessionStorage` as `deck:<id>`, and opens a new tab at `/#deck=<id>` which mounts the in-browser `DeckViewer`.
+ - `utils/generateDeckJSON.ts` contains a deterministic deck generator used for fast demos (no LLM required). Gemini enhancement is optional and lazily loaded.
 
-This demo flow requires no server and is designed for fast handoffs at a hackathon.
+### Quick demo (no backend)
+
+1. Start the dev server:
+
+```sh
+npm run dev
+# or
+yarn dev
+```
+
+2. Click "Generate Your Deck" to open the multi-step form (`src/components/DeckFormModal.tsx`).
+
+3. Submit the form — the modal opens a small placeholder window synchronously and calls `useGenerateDeck` which:
+    - optionally enhances text with Gemini (lazy imported),
+    - builds a deterministic deck JSON,
+    - tries to persist it to `localStorage` under `deck:<id>` (falls back to encoding it into the URL),
+    - broadcasts the deck on `BroadcastChannel('deck:<id>')` and navigates the placeholder to `/#deck=<id>` or `/#deckdata=<base64>`.
+
+4. `src/main.tsx` reads the hash on load, reads the deck from `localStorage` or `#deckdata`, and mounts `<DeckViewer deck={deck} />` if present; otherwise the regular app mounts.
+
+This flow requires no server and is designed for fast demos and hackathon pitching.
 
 ## 🎨 UI/UX Features
 

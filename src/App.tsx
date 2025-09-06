@@ -16,8 +16,7 @@ import {
   Rocket,
   Play
 } from 'lucide-react';
-import DeckFormModal, { DeckFormPayload } from './components/DeckFormModal';
-import { generateDeckJSON } from '../utils/generateDeckJSON';
+import DeckFormModal from './components/DeckFormModal';
 import { ToastProvider } from './components/ui/Toast';
 
 function App() {
@@ -42,23 +41,7 @@ function App() {
     setMobileMenuOpen(false);
   };
 
-  const handleGenerate = async (payload: DeckFormPayload) => {
-    // Create a deterministic deck JSON (client-side) and persist to sessionStorage for quick viewer demo
-    try {
-      const deck = generateDeckJSON(payload as Record<string, string>);
-      const key = `deck:${deck.id}`;
-      try {
-        sessionStorage.setItem(key, JSON.stringify(deck));
-      } catch (e) {
-        console.warn('Failed to write deck to sessionStorage', e);
-      }
-      // Open the viewer in a new tab using a hash route
-      window.open(`${window.location.origin}/#deck=${deck.id}`, '_blank');
-      console.log('Generated deck and opened viewer for', deck.id);
-    } catch (err) {
-      console.error('Error generating deck JSON', err);
-    }
-  };
+  
 
   return (
     <ToastProvider>
@@ -637,7 +620,6 @@ function App() {
       <DeckFormModal 
         open={modalOpen} 
         onOpenChange={setModalOpen} 
-        onGenerate={handleGenerate}
       />
       </div>
     </ToastProvider>

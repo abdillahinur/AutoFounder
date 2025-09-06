@@ -6,7 +6,7 @@ Quick status summary
 - App shell, UI, and multi-step intake form: IMPLEMENTED (see `src/App.tsx`, `src/components/DeckFormModal.tsx`).
 - Slide templates and client-side PPTX export: IMPLEMENTED (see `lib/deckTemplates.ts`, `utils/generatePitchDeckPPTX.ts`). PPTX exporter chooses high-contrast black/white text per-slide.
 - Toasts, dialog, and UI components: IMPLEMENTED (`src/components/ui/*`).
-- Deck viewer component, deterministic deck JSON generator (`utils/generateDeckJSON.ts`), and client-side PPTX export: IMPLEMENTED. LLM classification, LLM-driven deck generation, outbound send, pixel tracking, stripe paywall, html2pdf export, and event pipeline: NOT IMPLEMENTED / STUBBED.
+- Deck viewer component, deterministic deck JSON generator (`utils/generateDeckJSON.ts`), and client-side PPTX export: IMPLEMENTED. The demo wiring now uses `src/hooks/useGenerateDeck.ts` and `src/main.tsx` to reliably open the viewer in a new tab via `localStorage` + `BroadcastChannel` with a URL-embedded base64 fallback.
 - Background images exist under `public/images/` but were not committed in the previous step.
 
 Project goals (reminder)
@@ -37,7 +37,7 @@ Cut Line: Already satisfied.
 Phase 1 — Intake Form (0:30–2:00)
 Status: DONE (multi-step form implemented)
 What exists:
-- `src/components/DeckFormModal.tsx` with required & optional fields, validation, review step.
+- `src/components/DeckFormModal.tsx` with required & optional fields, validation, review step. The modal now opens a placeholder window synchronously and calls `useGenerateDeck` to generate and route the deck rather than generating PPTX directly in the modal.
 - `ToastProvider` and UI pieces for UX.
 Next actions:
 - Add Zod validation schemas if you want runtime/compile-time checks.
@@ -56,7 +56,7 @@ Phase 3 — Deck JSON (LLM #2)
 Status: PARTIAL — A deterministic `generateDeckJSON` is implemented for demos; LLM-driven JSON generation is not implemented.
 What exists:
 - `lib/deckTemplates.ts` defines slide fields and keys to map from the form.
-- `utils/generatePitchDeckPPTX.ts` converts the flat form object into a PPTX with defensive checks.
+- `utils/generatePitchDeckPPTX.ts` converts the flat form object into a PPTX with defensive checks. The viewer currently performs runtime import of `pptxgenjs` to produce the downloadable PPTX.
 - `utils/generateDeckJSON.ts` provides a deterministic, in-repo generator that produces deck JSON for demo flows (no LLM).
 Next actions:
 - (Optional) Add Zod schema validation for deck JSON and tighten types across viewer and PPTX generator.
@@ -66,7 +66,7 @@ Cut Line: If LLM fails, use deterministic templates + minor text transformations
 Phase 4 — Deck Viewer (UI)
 Status: PARTIAL — `DeckViewer` exists and supports download.
 What exists:
-- `src/components/DeckViewer.tsx` renders deck JSON as 16:9 cards, computes image luminance for on-screen contrast, and supports PPTX download.
+- `src/components/DeckViewer.tsx` renders deck JSON as 16:9 cards, computes image luminance for on-screen contrast, and dynamically imports `pptxgenjs` for PPTX download. It accepts deck objects with explicit text color metadata so exported slides mirror the viewer.
 Next actions:
 - Improve keyboard navigation and accessibility in the viewer.
 - (Optional) Add a dedicated route `/deck/[id]` backed by a small server or client-side routing.
@@ -75,7 +75,7 @@ Cut Line: Static cards without animations.
 Phase 5 — Export + Paywall
 Status: PARTIAL
 What exists:
-- PPTX export (`pptxgenjs`) implemented in `utils/generatePitchDeckPPTX.ts`.
+- PPTX export (`pptxgenjs`) is consumed by the viewer via a runtime import; `utils/generatePitchDeckPPTX.ts` remains available as an implementation helper.
 - No PDF/html2pdf export, and no Stripe wiring.
 Next actions:
 - Add `html2pdf.js` export button in the deck viewer. For watermark, overlay text or footer conditionally based on deck.isPaid.
@@ -111,7 +111,7 @@ Immediate priorities (recommended order)
 4. Add `/api/send` and `/api/pixel` stubs for outbound demo if you want to demo Resend integration.
 
 Files of interest (start here)
-- `src/components/DeckFormModal.tsx` — intake form and submit wiring. (calls `generatePitchDeckPPTX` directly.)
+- `src/components/DeckFormModal.tsx` — intake form and submit wiring. The modal now calls `useGenerateDeck` and opens a placeholder window synchronously.
 - `utils/generatePitchDeckPPTX.ts` — browser PPTX generator.
 - `lib/deckTemplates.ts` — slide templates and field keys.
 - `src/App.tsx` — landing page and modal wiring.
@@ -125,7 +125,7 @@ Next steps I can take now (pick one or more)
 - D: Prepare short usage & testing steps and commands you can run locally, plus recommended next PR/tasks for collaborators.
 
 What I did in this pass
-- Created `PHASES.md` at repo root with this mapping and recommendations.
+- Updated PHASES.md to reflect the current code: `useGenerateDeck`, `DeckViewer`, localStorage/BroadcastChannel fallback, and deterministic generator.
 
 What's next
 - Tell me which of A/B/C/D you want me to do next. If A, confirm I should run git commands and whether to include all uncommitted changes in the second commit or only specific files. If B/C, I'll implement the minimal generator/viewer or API stubs and run quick smoke checks.

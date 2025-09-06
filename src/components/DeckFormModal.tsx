@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Edit2, Plus, Minus, MoreVertical, RotateCcw, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/Dialog';
 import { useToast } from './ui/Toast';
+import useGenerateDeck, { FormPayload } from '../hooks/useGenerateDeck';
 
 export type DeckFormPayload = {
   startupName: string;
@@ -25,7 +26,6 @@ export type DeckFormPayload = {
 interface DeckFormModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onGenerate?: (payload: DeckFormPayload) => Promise<void> | void;
 }
 
 
@@ -156,7 +156,7 @@ const initialFormData: DeckFormPayload = {
   contact: "",
 };
 
-export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFormModalProps) {
+export default function DeckFormModal({ open, onOpenChange }: DeckFormModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<DeckFormPayload>(initialFormData);
   const [showOptional, setShowOptional] = useState(false);
@@ -188,7 +188,7 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
       // Check if current question is answered
       const currentQuestion = requiredQuestions[currentStep];
       if (!formData[currentQuestion.id] || formData[currentQuestion.id].trim() === '') {
-        addToast('Please answer this question before continuing', 'error');
+    addToast({ type: 'error', title: 'Incomplete', description: 'Please answer this question before continuing' });
         return;
       }
       setCurrentStep((prev) => prev + 1);
@@ -201,45 +201,56 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
     }
   };
 
+  const { generate } = useGenerateDeck();
+
   const handleSubmit = async () => {
     setIsSubmitted(true);
-    
-    // Show "Generating..." toast immediately
+
+    // Open a blank window synchronously to avoid popup blockers. We'll pass it to the generator.
+    const viewerWindow = window.open('about:blank', '_blank', 'noopener=false');
+
+    // Show a persistent "Generating..." toast while we prepare the deck
     const generatingToastId = addToast({
       type: 'info',
       title: 'Deck Generating...',
-      description: 'Creating your pitch deck with AI enhancement...',
-      duration: 0 // Don't auto-dismiss - we'll dismiss it manually
+      description: 'Creating your pitch deck...',
+      duration: 0,
     });
-    
+
     try {
-      const { generatePitchDeckPPTX } = await import("../../utils/generatePitchDeckPPTX");
-      console.log("Generating deck...", formData);
-      await generatePitchDeckPPTX(formData, "PitchDeck.pptx");
-      
-      // Remove the "Generating..." toast
+      console.log('Submitting form for deck generation...', formData);
+      const mapped: FormPayload = {
+        title: formData.startupName || formData.oneLiner || 'Untitled',
+        slides: [
+          { heading: formData.oneLiner || 'One-liner', bullets: formData.oneLiner ? [formData.oneLiner] : [] },
+          { heading: 'Problem', bullets: formData.problem ? [formData.problem] : [] },
+          { heading: 'Solution', bullets: formData.solution ? [formData.solution] : [] },
+          { heading: 'Customer', bullets: formData.customer ? [formData.customer] : [] },
+          { heading: 'Traction', bullets: formData.traction ? [formData.traction] : [] },
+          { heading: 'Ask', bullets: formData.ask ? [formData.ask] : [] },
+          { heading: 'Business Model', bullets: formData.model ? [formData.model] : [] },
+          { heading: 'Market', bullets: formData.market ? [formData.market] : [] },
+          { heading: 'Competition', bullets: formData.competition ? [formData.competition] : [] },
+          { heading: 'Team', bullets: formData.team ? [formData.team] : [] },
+          { heading: 'Roadmap', bullets: formData.roadmap ? [formData.roadmap] : [] },
+          { heading: 'Contact', bullets: formData.contact ? [formData.contact] : [] },
+        ].map(s => ({ ...s, imageUrl: (s as any).imageUrl ?? undefined })).filter(s => (s.bullets && s.bullets.length) || s.imageUrl)
+      };
+
+      await generate(mapped, viewerWindow);
+      // Remove the generating toast and show a brief queued toast
       removeToast(generatingToastId);
-      
-      if (onGenerate) {
-        await onGenerate(formData);
-      }
-      // Close modal after a short delay to let toast show
-      setTimeout(() => {
-        onOpenChange(false);
-      }, 100);
+      addToast({ type: 'success', title: 'Deck queued', description: 'Opening deck viewer...', duration: 3000 });
+      onOpenChange(false);
     } catch (error) {
-      console.error('Error generating deck:', error);
-      
-      // Remove the "Generating..." toast and show error
+      console.error('Error during generation:', error);
       removeToast(generatingToastId);
-      addToast({
-        type: 'error',
-        title: 'Generation Failed',
-        description: 'There was an error creating your deck. Please try again.'
-      });
-      setIsSubmitted(false); // Reset immediately on error
+      addToast({ type: 'error', title: 'Generation Failed', description: 'There was an error creating your deck. Please try again.' });
+      try { viewerWindow?.close(); } catch (e) {}
+      setIsSubmitted(false);
       return;
     }
+
     setTimeout(() => setIsSubmitted(false), 3000);
   };
 
@@ -266,11 +277,7 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
     if (stepIndex <= currentStep || (stepIndex === currentStep + 1 && formData[requiredQuestions[currentStep].id]?.trim())) {
       setCurrentStep(stepIndex);
     } else {
-      addToast({
-        type: 'error',
-        title: 'Cannot Skip Questions',
-        description: 'Please complete the current question before jumping ahead'
-      });
+  addToast({ type: 'error', title: 'Incomplete', description: 'Please complete the current question before jumping ahead' });
     }
   };
 

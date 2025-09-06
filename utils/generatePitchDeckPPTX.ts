@@ -5,11 +5,11 @@ import { getRelevantImage, imageUrlToBase64 } from "../src/lib/images/pixabay";
 
 // Define a type for slide field metadata
 interface SlideFieldMeta {
-  placeholder: string;
-  position: string;
-  fontSize: number;
+  placeholder?: string;
+  position?: string;
+  fontSize?: number;
   fontWeight?: string;
-  color: string;
+  color?: string;
 }
 
 // Helper to split text into bullet points
@@ -33,17 +33,17 @@ function formatBulletPoints(text: string, defaultOptions: any): any[] {
 }
 
 // Generate and download a PowerPoint deck in the browser (no backend required)
-export async function generatePitchDeckPPTX(userInput: Record<string, string>, outputFileName = "PitchDeck.pptx") {
+export async function generatePitchDeckPPTX(userInput: Record<string, any>, outputFileName = "PitchDeck.pptx") {
   const pptx = new pptxgen();
-  
+
   // Enhance content with AI if API key is available
-  let enhancedInput = userInput;
+  let enhancedInput: Record<string, any> = userInput;
   let slideHeaders: Record<string, string> = {};
-  const geminiKey = localStorage.getItem('gemini_api_key') || import.meta.env?.VITE_GEMINI_API_KEY;
+  const geminiKey = localStorage.getItem('gemini_api_key') || (import.meta as any).env?.VITE_GEMINI_API_KEY;
   if (geminiKey) {
     try {
       console.log('🤖 Enhancing content with Gemini AI...');
-      // Set the API key for this session
+      // Set the API key for this session if the helper expects it
       (globalThis as any).GEMINI_API_KEY = geminiKey;
       enhancedInput = await enhanceDeckContent(userInput);
       slideHeaders = await generateSlideHeaders(userInput);
@@ -76,18 +76,24 @@ export async function generatePitchDeckPPTX(userInput: Record<string, string>, o
 
   // Content slides
   const slideOrder = [
-    "problem", "solution", "market", "business_model", "traction", "team", "ask"
+    'problem',
+    'solution',
+    'market',
+    'business_model',
+    'traction',
+    'team',
+    'ask',
   ] as const;
   type SlideKey = typeof slideOrder[number];
-  // Default slide headers (fallback if AI fails)
-  const defaultHeaders = {
-    problem: "The Problem",
-    solution: "Our Solution", 
-    market: "Market Opportunity",
-    business_model: "Business Model",
-    traction: "Traction & Metrics",
-    team: "Our Team",
-    ask: "The Ask"
+
+  const defaultHeaders: Record<string, string> = {
+    problem: 'The Problem',
+    solution: 'Our Solution',
+    market: 'Market Opportunity',
+    business_model: 'Business Model',
+    traction: 'Traction & Metrics',
+    team: 'Our Team',
+    ask: 'The Ask',
   };
 
   // Process slides with smart image integration
@@ -97,8 +103,7 @@ export async function generatePitchDeckPPTX(userInput: Record<string, string>, o
     
     const slide = pptx.addSlide();
     slide.background = { path: contentBg };
-    
-    // Add slide header (AI-generated or default)
+
     const header = slideHeaders[slideKey] || defaultHeaders[slideKey as keyof typeof defaultHeaders];
     slide.addText(header, {
       x: 1, y: 0.5, fontSize: 32, color: "#2563eb", bold: true, w: 8, h: 0.8
@@ -130,7 +135,6 @@ export async function generatePitchDeckPPTX(userInput: Record<string, string>, o
     
     Object.entries(tmpl.fields).forEach(([field, meta]) => {
       const m = meta as SlideFieldMeta;
-      // Defensive: skip if meta is undefined
       if (!m) return;
       
       const textContent = enhancedInput[field] || m.placeholder || `[${field}]`;
@@ -150,7 +154,7 @@ export async function generatePitchDeckPPTX(userInput: Record<string, string>, o
   }
 
   // Download the file in the browser
-  pptx.writeFile({ fileName: outputFileName });
+  await pptx.writeFile({ fileName: outputFileName });
 }
 
 // Usage in a React component:
