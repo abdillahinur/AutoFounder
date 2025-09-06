@@ -2,6 +2,21 @@
 
 AutoFounder is a browser-based web application that helps founders go from idea to investor inbox in 60 seconds. It generates AI-powered pitch decks and enables instant download as PowerPoint (.pptx) files—no backend required. All generation and export logic runs client-side for privacy and speed.
 
+## 🚀 Live Demo
+
+Visit [AutoFounder](https://autofounder.com) to create your pitch deck in 60 seconds.
+
+## ✨ Key Features
+
+- **⚡ 60-Second Pitch Deck Creation** - From idea to investor-ready deck
+- **🎨 Premium Multi-Step Form** - Clean, Linear/Notion-inspired UI with validation
+- **📊 Smart Progress Tracking** - Visual progress bar and step navigation
+- **🔒 Form Validation** - Cannot advance without completing required fields
+- **💾 Instant PowerPoint Export** - Download as .pptx file immediately
+- **🎯 Custom Templates** - Multiple deck themes and backgrounds
+- **📱 Responsive Design** - Works perfectly on desktop and mobile
+- **🔐 Privacy-First** - All processing happens in your browser
+
 ## Tech Stack
 
 AutoFounder is built with a modern, production-ready stack:
@@ -23,14 +38,26 @@ AutoFounder is built with a modern, production-ready stack:
 
 The app is designed for hackathon speed: local/in-memory storage, no backend, and all templates are custom Tailwind layouts. All images for slide backgrounds are stored in `/public/images/` and can be easily swapped for different deck themes.
 
-## Features
+## 🎯 Form Fields
 
-- **Browser-based pitch deck generator** (no backend, no data leaves your device)
-- **Customizable slide templates** with JSON mapping for user input
-- **Download as PowerPoint (.pptx)** with custom backgrounds
-- **Modern, animated UI** with framer-motion
-- **Optional: Export to PDF, Stripe unlock, and investor email features** (see legacy code)
-- Built with **React**, **TypeScript**, **Vite**, and **TailwindCSS**
+The multi-step form collects essential startup information:
+
+### Required Fields
+- **Startup Name** - What's your startup called?
+- **One-Line Pitch** - Describe your startup in one sentence
+- **Problem** - What problem are you solving?
+- **Solution** - How do you solve it?
+- **Target Customer** - Who is this for?
+- **Traction** - Any traction yet? (metrics or n/a)
+- **Funding Ask** - What are you raising & what for?
+
+### Optional Fields
+- **Business Model** - How will you make money?
+- **Market Size** - What's the market size?
+- **Competition** - Who are competitors & what's your edge?
+- **Team** - Who's on your team?
+- **Roadmap** - What's your vision or next milestones?
+- **Contact** - How can investors reach you?
 
 ## Getting Started
 
@@ -86,24 +113,53 @@ npm run lint
 yarn lint
 ```
 
-## How It Works
+## 🔄 How It Works
 
-- User fills out a multi-step form (see `src/components/DeckFormModal.tsx`).
-- Form data is mapped to a JSON slide template (`lib/deckTemplates.ts`).
-- On submit, `utils/generatePitchDeckPPTX.ts` generates a PowerPoint deck in the browser using pptxgenjs, only rendering fields that exist in both the template and user input.
-- The deck is downloaded instantly with custom backgrounds from `/public/images/`.
-- No backend/API calls are made; all logic is client-side.
+1. **📝 Multi-Step Form** - Users fill out a beautiful, validated form with 7 required questions + optional details
+2. **✅ Smart Validation** - Cannot advance without completing required fields, with visual progress tracking
+3. **🎨 Template Mapping** - Form data is mapped to JSON slide templates (`lib/deckTemplates.ts`)
+4. **⚡ Instant Generation** - `utils/generatePitchDeckPPTX.ts` creates PowerPoint deck in-browser using pptxgenjs
+5. **💾 Immediate Download** - Deck downloads instantly with custom backgrounds from `/public/images/`
+6. **🔐 Privacy-First** - No backend/API calls; all processing happens client-side
+
+## 🎨 UI/UX Features
+
+- **Linear/Notion Aesthetic** - Clean, modern design with Inter font and blue accent color
+- **Smooth Animations** - Framer Motion transitions between steps and modals
+- **Progress Tracking** - Visual progress bar and clickable step navigation
+- **Custom Confirmations** - Beautiful modal dialogs instead of browser alerts
+- **Responsive Design** - Optimized for desktop and mobile devices
+- **Accessibility** - Proper labels, focus management, and keyboard navigation
 
 ## Customizing Deck Templates & Backgrounds
 
 - To add or edit slide templates, update `lib/deckTemplates.ts`.
 - To change slide backgrounds, add images to `/public/images/` and update the paths in `utils/generatePitchDeckPPTX.ts`.
 
-## Contributors
+## 🚀 Development Status
 
-- Built by founders for founders at Hackathon 3.0
-- (Add your names/usernames here)
+**Phase 1: Intake Form** ✅ **COMPLETE**
+- Multi-step form with validation
+- Required field enforcement
+- Custom confirmation modals
+- Instant PowerPoint generation
+- Client-side processing
 
-## License
+**Phase 2: Coming Soon**
+- Enhanced deck templates
+- Multiple theme options
+- Advanced customization features
 
-(Add your license here, e.g., MIT)
+## 🤝 Contributing
+
+We welcome contributions! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built by founders for founders
+- Inspired by the need for rapid pitch deck creation
+- Special thanks to the open-source community for the amazing tools and libraries

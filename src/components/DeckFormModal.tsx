@@ -162,6 +162,7 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
   const [showOptional, setShowOptional] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   const { addToast } = useToast();
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
@@ -233,6 +234,8 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
     setFormData(initialFormData);
     setCurrentStep(0);
     setShowOptional(false);
+    setShowResetConfirm(false);
+    setShowMenu(false);
     addToast({
       type: 'success',
       title: 'Form reset',
@@ -305,9 +308,7 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
                   <div className="absolute right-0 top-full mt-2 bg-white border-2 border-gray-100 rounded-xl shadow-lg py-2 z-10 min-w-[160px]">
                     <button
                       onClick={() => {
-                        if (confirm('Reset all form data?')) {
-                          handleReset();
-                        }
+                        setShowResetConfirm(true);
                         setShowMenu(false);
                       }}
                       className="flex items-center space-x-3 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 w-full transition-colors"
@@ -627,6 +628,59 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
                 <span className="text-lg font-bold">Deck Generated!</span>
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Reset Confirmation Modal */}
+        <AnimatePresence>
+          {showResetConfirm && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                onClick={() => setShowResetConfirm(false)}
+              />
+              
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                transition={{ type: 'spring', duration: 0.3 }}
+                className="relative bg-white rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-gray-100 max-w-md w-full mx-4 p-6"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="text-center">
+                  <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <RotateCcw className="w-6 h-6 text-red-600" />
+                  </div>
+                  
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">
+                    Reset Form?
+                  </h3>
+                  
+                  <p className="text-sm text-gray-600 mb-6">
+                    This will clear all your answers and start over. This action cannot be undone.
+                  </p>
+                  
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setShowResetConfirm(false)}
+                      className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleReset}
+                      className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    >
+                      Reset Form
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
           )}
         </AnimatePresence>
       </DialogContent>
