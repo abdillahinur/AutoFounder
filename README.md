@@ -117,38 +117,52 @@ yarn lint
 
 ## 🔄 How It Works
 
-1. **📝 Multi-Step Form** - Users fill out a beautiful, validated form with 7 required questions + optional details
-2. **✅ Smart Validation** - Cannot advance without completing required fields, with visual progress tracking
-3. **🤖 AI Enhancement** - Gemini AI improves content quality and fills missing sections (optional)
-4. **🎨 Template Mapping** - Form data is mapped to JSON slide templates (`lib/deckTemplates.ts`)
-5. **⚡ Instant Generation** - `utils/generatePitchDeckPPTX.ts` creates PowerPoint deck in-browser using pptxgenjs
-6. **💾 Immediate Download** - Deck downloads instantly with custom backgrounds from `/public/images/`
-7. **🔐 Privacy-First** - No backend/API calls; all processing happens client-side
+ - **💾 Instant PowerPoint Export** - Download as .pptx file immediately (client-side)
+ - **🎯 Custom Templates** - Multiple deck themes and backgrounds
+ - **🧩 Deterministic Deck JSON** - A local, deterministic `generateDeckJSON` helper (no LLM) produces the deck JSON used by the viewer and PPTX generator for fast demos.
+
+## Quick demo (no backend)
+
+- Open the site locally with `npm run dev`.
+- Click "Generate Your Deck" to open the multi-step form.
+- Submit the form — the app creates a deterministic deck JSON, stores it in `sessionStorage` as `deck:<id>`, and opens a new tab at `/#deck=<id>` which mounts the in-browser `DeckViewer`.
+
+This demo flow requires no server and is designed for fast handoffs at a hackathon.
 
 ## 🎨 UI/UX Features
 
 - **Linear/Notion Aesthetic** - Clean, modern design with Inter font and blue accent color
 - **Smooth Animations** - Framer Motion transitions between steps and modals
-- **Progress Tracking** - Visual progress bar and clickable step navigation
-- **Custom Confirmations** - Beautiful modal dialogs instead of browser alerts
 - **Responsive Design** - Optimized for desktop and mobile devices
 - **Accessibility** - Proper labels, focus management, and keyboard navigation
 
 ## Customizing Deck Templates & Backgrounds
 
 - To add or edit slide templates, update `lib/deckTemplates.ts`.
-- To change slide backgrounds, add images to `/public/images/` and update the paths in `utils/generatePitchDeckPPTX.ts`.
+4. **🎨 Template Mapping** - Form data is mapped to JSON slide templates (`lib/deckTemplates.ts`). A deterministic `utils/generateDeckJSON.ts` is available for fast demo generation without LLMs.
+5. **⚡ Instant Generation** - `utils/generatePitchDeckPPTX.ts` creates a PowerPoint deck in-browser using `pptxgenjs`. The PPTX exporter chooses a high-contrast text color (black or white) per-slide to maximize legibility; the exporter intentionally does not add semi-opaque text boxes.
+6. **📁 Demo Wiring** - The app persists generated deck JSON to `sessionStorage` and mounts a `DeckViewer` when the URL hash contains `#deck=<id>` (see `src/main.tsx`).
 
-## 🚀 Development Status
+### Troubleshooting
+
+- Vite import error: if you see "Failed to resolve import './utils/generateDeckJSON' from 'src/App.tsx'", ensure the file exists at `utils/generateDeckJSON.ts` (project root `utils`) and that `src/App.tsx` imports it relatively as `../utils/generateDeckJSON` (that path is used in this repo).
+- If PPTX text looks low-contrast, the exporter falls back to black/white. For image backgrounds, cross-origin images may prevent automatic sampling — explicit metadata `coverTextColor` / `contentTextColor` are used as a fallback.
 
 **Phase 1: Intake Form** ✅ **COMPLETE**
 - Multi-step form with validation
-- Required field enforcement
-- Custom confirmation modals
-- Instant PowerPoint generation
-- Client-side processing
+ ## 🚀 Development Status (short)
 
-**Phase 2: Coming Soon**
+ - Multi-step intake form: Complete (`src/components/DeckFormModal.tsx`).
+ - Deterministic deck JSON generator: Implemented (`utils/generateDeckJSON.ts`) for demo workflows (no LLM required).
+ - Deck viewer component: Present (`src/components/DeckViewer.tsx`) — renders slide cards in the browser. Small wiring remains to persist and route generated decks for a hash-based viewer demo.
+ - PPTX export: Implemented (`utils/generatePitchDeckPPTX.ts`) and improved — exported text uses black or white chosen for max contrast; semi-opaque text boxes were intentionally removed so slides remain visually clean.
+ - Outbound email / Resend, PDF export, Stripe paywall, event pipeline: Not implemented (stubs/deps may be present in package.json).
+ - Deck viewer component: Present (`src/components/DeckViewer.tsx`) — renders slide cards in the browser and supports download.
+ - Deterministic deck JSON generator: Implemented (`utils/generateDeckJSON.ts`) and wired to the demo flow (App -> sessionStorage -> `/#deck=<id>` -> `DeckViewer`).
+ - PPTX export: Implemented (`utils/generatePitchDeckPPTX.ts`) and improved — exported text uses black or white chosen for max contrast; semi-opaque text boxes were intentionally removed so slides remain visually clean.
+ - Outbound email / Resend, PDF export, Stripe paywall, event pipeline: Not implemented (stubs/deps may be present in package.json).
+
+ See `PHASES.md` for a more detailed phase-by-phase breakdown and next steps.
 - Enhanced deck templates
 - Multiple theme options
 - Advanced customization features

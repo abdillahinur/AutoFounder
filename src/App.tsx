@@ -17,6 +17,7 @@ import {
   Play
 } from 'lucide-react';
 import DeckFormModal, { DeckFormPayload } from './components/DeckFormModal';
+import { generateDeckJSON } from '../utils/generateDeckJSON';
 import { ToastProvider } from './components/ui/Toast';
 
 function App() {
@@ -42,10 +43,21 @@ function App() {
   };
 
   const handleGenerate = async (payload: DeckFormPayload) => {
-    // TODO: call Convex action generateDeck(payload)
-    // TODO: call Convex action sendToInvestors(deckId)
-    // TODO: auth + user-bound persistence
-    console.log('Generated deck with payload:', payload);
+    // Create a deterministic deck JSON (client-side) and persist to sessionStorage for quick viewer demo
+    try {
+      const deck = generateDeckJSON(payload as Record<string, string>);
+      const key = `deck:${deck.id}`;
+      try {
+        sessionStorage.setItem(key, JSON.stringify(deck));
+      } catch (e) {
+        console.warn('Failed to write deck to sessionStorage', e);
+      }
+      // Open the viewer in a new tab using a hash route
+      window.open(`${window.location.origin}/#deck=${deck.id}`, '_blank');
+      console.log('Generated deck and opened viewer for', deck.id);
+    } catch (err) {
+      console.error('Error generating deck JSON', err);
+    }
   };
 
   return (
