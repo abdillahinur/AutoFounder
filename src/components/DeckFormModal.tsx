@@ -201,35 +201,46 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
   };
 
   const handleSubmit = async () => {
-    if (onGenerate) {
-      addToast({
-        type: 'info',
-        title: 'Generating your deck...',
-        description: 'This may take a few moments'
+    setIsSubmitted(true);
+    
+    try {
+      // POST to /api/classify endpoint
+      const response = await fetch('/api/classify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
       });
-      
-      try {
-        await onGenerate(formData);
-        addToast({
-          type: 'success',
-          title: 'Deck generated!',
-          description: 'Check your email for the results'
-        });
-        onOpenChange(false);
-      } catch (error) {
-        addToast({
-          type: 'error',
-          title: 'Generation failed',
-          description: 'Please try again'
-        });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } else {
-      // Default implementation
-      console.log('Generated deck with payload:', formData);
-      setIsSubmitted(true);
-      setTimeout(() => setIsSubmitted(false), 3000);
-      setTimeout(() => onOpenChange(false), 3000);
+
+      const result = await response.json();
+      
+      addToast({
+        type: 'success',
+        title: 'Deck Generated!',
+        description: 'Your pitch deck is being created...'
+      });
+
+      // Call the onGenerate callback if provided
+      if (onGenerate) {
+        await onGenerate(formData);
+      }
+      
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      addToast({
+        type: 'error',
+        title: 'Submission Failed',
+        description: 'There was an error creating your deck. Please try again.'
+      });
     }
+    
+    setTimeout(() => setIsSubmitted(false), 3000);
+    setTimeout(() => onOpenChange(false), 3000);
   };
 
   const handleReset = () => {
