@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye, FileText } from 'lucide-react';
+import { useTextTone } from '../hooks/useTextTone';
+import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye } from 'lucide-react';
 import type { Deck } from '../../utils/generateDeckJSON';
 
 interface PPTViewerProps {
@@ -34,8 +35,6 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   console.log('🔍 PPTViewer received deck:', deck);
   console.log('🔍 Deck type:', typeof deck);
   console.log('🔍 Deck keys:', deck ? Object.keys(deck) : 'No deck');
-  // Debug: surface theme metadata which the viewer depends on
-  console.debug('🔍 deck.meta', (deck as any)?.meta);
 
   // Safety check - if no deck
   if (!deck) {
@@ -165,24 +164,29 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
     console.warn('Failed to compute slide backgrounds for debug', e);
   }
 
-  // Compute the inline background style for the currently visible slide.
+  // Compute the inline background URL for the currently visible slide (null when a foreground image is present)
   const imageUrlForCurrent = (currentSlideData as any)?.imageUrl || (currentSlideData as any)?.image;
-  let currentBgStyle: React.CSSProperties | undefined = undefined;
+  let currentBgUrl: string | null = null;
   try {
     if (!imageUrlForCurrent) {
       if (assets) {
         const bg = currentSlide === 0 ? (assets.coverBg || assets.contentBg) : (assets.contentBg || assets.coverBg);
-        if (bg) {
-          currentBgStyle = { backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' };
-        }
-      } else {
-        // soft fallback gradient when no assets are available
-        currentBgStyle = { background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)' };
+        if (bg) currentBgUrl = bg;
       }
     }
   } catch (e) {
-    console.warn('Failed to compute currentBgStyle', e);
+    console.warn('Failed to compute currentBgUrl', e);
+    currentBgUrl = null;
   }
+
+  // Determine per-slide background URL to sample tone from: prefer slide image if present, else theme asset
+  const slideMeta = currentSlideData as any;
+  const bgUrlForTone = (slideMeta?.imageUrl || slideMeta?.image) ? String(slideMeta?.imageUrl || slideMeta?.image) : currentBgUrl;
+  const fallbackTone = (deck as any)?.meta?.textTone ?? (assets && assets.defaultText) ?? 'dark';
+  const tone = useTextTone({ imageUrl: bgUrlForTone ?? undefined, fallback: fallbackTone });
+  const toneClass = tone === 'light' ? 'text-white' : 'text-black';
+  // store the tone back onto the slide object in-memory so exporters can read it
+  try { if (slideMeta) (slideMeta as any).textTone = tone; } catch (e) { /* ignore */ }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -203,39 +207,32 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                   <span className="text-sm font-medium text-yellow-700">Preview Mode</span>
                 </div>
               )}
-              <button
-                onClick={handleEdit}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  isProUser ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                {!isProUser && <Lock className="w-4 h-4" />}
-                <Edit3 className="w-4 h-4" />
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={() => setShowScript(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
-              >
-                <FileText className="w-4 h-4" />
-                <span>Script</span>
-              </button>
-              <button
-                onClick={handleDownload}
-                className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                  isProUser ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                }`}
-              >
-                {!isProUser && <Lock className="w-4 h-4" />}
-                <Download className="w-4 h-4" />
-                <span>{preparing ? 'Preparing...' : 'Download'}</span>
-              </button>
+                <button
+                  onClick={handleEdit}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isProUser ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {!isProUser && <Lock className="w-4 h-4 text-current" />}
+                  <Edit3 className="w-4 h-4 text-current" />
+                  <span>Edit</span>
+                </button>
+                <button
+                  onClick={handleDownload}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                    isProUser ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  }`}
+                >
+                  {!isProUser && <Lock className="w-4 h-4 text-current" />}
+                  <Download className="w-4 h-4 text-current" />
+                  <span>{preparing ? 'Preparing...' : 'Download'}</span>
+                </button>
               {!isProUser && (
                 <button
                   onClick={() => setShowUpgrade(true)}
                   className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all"
                 >
-                  <Crown className="w-4 h-4" />
+                  <Crown className="w-4 h-4 text-current" />
                   <span>Upgrade</span>
                 </button>
               )}
@@ -299,7 +296,20 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                 {/* Slide Content - themed rendering: apply background when no slide image present */}
                 <div className="h-full p-12 flex flex-col justify-center">
                   {currentSlideData && (
-                    <article style={currentBgStyle} className="h-full w-full rounded-2xl p-6 shadow border relative overflow-hidden">
+                    <article className="h-full w-full rounded-2xl p-6 shadow border relative overflow-hidden">
+                      {/* background layer (only when no foreground image) */}
+                      {!imageUrlForCurrent && currentBgUrl && (
+                        <div className="absolute inset-0">
+                          <div
+                            style={{ backgroundImage: `url(${currentBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                            className="absolute inset-0"
+                          />
+                          {/* scrim: stronger on the left where text sits */}
+                          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.6)_0%,rgba(0,0,0,.2)_45%,rgba(0,0,0,0)_70%)] pointer-events-none" />
+                        </div>
+                      )}
+
+                      <div className={`relative p-6 ${toneClass} drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]`}>
                       {/* Cover slide: centered layout */}
                       {currentSlide === 0 ? (
                         <div className="h-full w-full flex flex-col items-center justify-center text-center px-8">
@@ -314,10 +324,10 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                             </div>
                           )}
 
-                          <h1 className={`text-5xl font-extrabold leading-tight mb-4 ${textClass}`}>
+                          <h1 className={`text-5xl font-extrabold leading-tight mb-4 ${toneClass}`}>
                             {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
                           </h1>
-                          <p className={`text-xl max-w-2xl ${textClass} opacity-90`}>
+                          <p className={`text-xl max-w-2xl ${toneClass} opacity-90`}>
                             {Array.isArray((currentSlideData as any).bullets) ? ((currentSlideData as any).bullets[0] || '') : ''}
                           </p>
                         </div>
@@ -344,14 +354,15 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                             <ul className="space-y-4">
                               {(currentSlideData as any).bullets.map((bullet: string, idx: number) => (
                                 <li key={idx} className="flex items-start">
-                                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                                  <span className={`text-lg ${textClass}`}>{bullet}</span>
+                                  <div className="w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0 bg-current" />
+                                  <span className="text-lg">{bullet}</span>
                                 </li>
                               ))}
                             </ul>
                           )}
                         </div>
                       )}
+                      </div>
                     </article>
                   )}
                 </div>
@@ -364,7 +375,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                   disabled={currentSlide === 0}
                   className="flex items-center space-x-2 px-4 py-2 bg-white rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <ChevronLeft className="w-4 h-4" />
+                  <ChevronLeft className="w-4 h-4 text-current" />
                   <span>Previous</span>
                 </button>
                 <div className="flex items-center space-x-2">
@@ -378,7 +389,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                   className="flex items-center space-x-2 px-4 py-2 bg-white rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   <span>Next</span>
-                  <ChevronRight className="w-4 h-4" />
+                  <ChevronRight className="w-4 h-4 text-current" />
                 </button>
               </div>
             </div>
