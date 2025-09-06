@@ -1,4 +1,10 @@
 import pptxgen from "pptxgenjs";
+import type { SlideFormat } from "../src/constants/slide";
+
+function applyLayout(pptx: any, fmt: SlideFormat) {
+  // pptxgenjs uses named layouts
+  pptx.layout = fmt === 'w4x3' ? 'LAYOUT_4x3' : 'LAYOUT_16x9';
+}
 import { deckTemplates } from "../lib/deckTemplates";
 import { enhanceDeckContent, generateSlideHeaders } from "../src/lib/ai/gemini";
 import { getRelevantImage, imageUrlToBase64 } from "../src/lib/images/pixabay";
@@ -35,6 +41,8 @@ function formatBulletPoints(text: string, defaultOptions: any): any[] {
 // Generate and download a PowerPoint deck in the browser (no backend required)
 export async function generatePitchDeckPPTX(userInput: Record<string, any>, outputFileName = "PitchDeck.pptx") {
   const pptx = new pptxgen();
+  const fmt: SlideFormat = (userInput?.meta && (userInput.meta as any).slideFormat) || 'w16x9';
+  applyLayout(pptx, fmt);
 
   // Enhance content with AI if API key is available
   let enhancedInput: Record<string, any> = userInput;

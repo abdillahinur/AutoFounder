@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useTextTone } from '../hooks/useTextTone';
 import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye } from 'lucide-react';
+import { SlideFrame } from './SlideFrame';
+import type { SlideFormat } from '../constants/slide';
 import type { Deck } from '../../utils/generateDeckJSON';
 
 interface PPTViewerProps {
@@ -93,6 +95,11 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
       const PPTXModule = await import('pptxgenjs');
       const PPTX = (PPTXModule && (PPTXModule.default || PPTXModule)) as any;
       const pres = new PPTX();
+      // Apply layout based on deck meta slideFormat
+      try {
+        const fmt: SlideFormat = (deck as any)?.meta?.slideFormat ?? 'w16x9';
+        pres.layout = fmt === 'w4x3' ? 'LAYOUT_4x3' : 'LAYOUT_16x9';
+      } catch (e) { /* ignore */ }
 
       const assets = (deck as any)?.meta?.themeAssets as { coverBg?: string; contentBg?: string } | undefined;
       const textTone = (deck as any)?.meta?.textTone || (assets && (assets as any).defaultText) || 'dark';
@@ -187,6 +194,10 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   // store the tone back onto the slide object in-memory so exporters can read it
   try { if (slideMeta) (slideMeta as any).textTone = tone; } catch (e) { /* ignore */ }
 
+  // Slide sizing/format for the viewer surface
+  const slideFormat: SlideFormat = (deck as any)?.meta?.slideFormat ?? 'w16x9';
+  const mode: 'fit' | 'actual' = (deck as any)?.meta?.viewerMode ?? 'fit';
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -271,7 +282,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
           <div className="lg:col-span-3">
             <div className="relative">
               {/* Slide Container */}
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 aspect-video relative overflow-hidden">
+              <SlideFrame format={slideFormat} mode={mode} className="bg-white rounded-xl shadow-lg border border-gray-200">
                 {/* Watermarks for free users */}
                 {!isProUser && (
                   <>
@@ -365,7 +376,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                     </article>
                   )}
                 </div>
-              </div>
+              </SlideFrame>
 
               {/* Navigation Controls */}
               <div className="flex justify-between items-center mt-4">
