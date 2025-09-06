@@ -71,10 +71,11 @@ export async function enhanceDeckContent(userInput: Record<string, string>): Pro
       enhanced.traction = await generateWithGemini({ prompt: tractionPrompt });
     }
     
-    // Generate team section if missing
+    // Generate team section if missing - but only if user provided some team info
     if (!userInput.team && userInput.startupName) {
-      const teamPrompt = `Generate 3-4 diverse bullet points about founders (max 8 words each). Each point should highlight different team members or credentials. Do NOT include asterisks (*) or bullet symbols. Just return plain text, one point per line.`;
-      enhanced.team = await generateWithGemini({ prompt: teamPrompt });
+      // Don't generate fake team members - just skip this section
+      // Users should provide their own team information
+      console.log('⚠️ No team information provided - skipping team generation');
     }
     
   } catch (error) {

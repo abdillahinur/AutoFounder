@@ -10,6 +10,7 @@ Visit [AutoFounder](https://autofounder.com) to create your pitch deck in 60 sec
 
 - **⚡ 60-Second Pitch Deck Creation** - From idea to investor-ready deck
 - **🤖 AI-Powered Content Enhancement** - Gemini AI improves your pitch content
+- **🖼️ Smart Image Integration** - Pixabay API adds relevant images when they fit
 - **🎨 Premium Multi-Step Form** - Clean, Linear/Notion-inspired UI with validation
 - **📊 Smart Progress Tracking** - Visual progress bar and step navigation
 - **🔒 Form Validation** - Cannot advance without completing required fields
@@ -27,6 +28,7 @@ AutoFounder is built with a modern, production-ready stack:
 - **TailwindCSS**: Utility-first CSS framework for rapid UI development.
 - **pptxgenjs**: PowerPoint (.pptx) export of pitch decks, fully in-browser.
 - **@google/generative-ai**: Gemini AI integration for content enhancement.
+- **pixabay-api**: Smart image search and integration for relevant visuals.
 - **framer-motion**: Animations and transitions for UI components.
 - **lucide-react**: Icon library for modern React apps.
 - **clsx**: Utility for conditionally joining classNames.
@@ -61,12 +63,32 @@ The multi-step form collects essential startup information:
 - **Roadmap** - What's your vision or next milestones?
 - **Contact** - How can investors reach you?
 
+## 🖼️ Smart Image Integration
+
+AutoFounder intelligently adds relevant images to your pitch deck slides using the Pixabay API:
+
+- **AI-Generated Search Queries**: Gemini AI creates smart search terms based on your startup content
+- **Relevance Filtering**: Only adds images that actually fit the slide topic and content
+- **Automatic Layout**: Images are positioned on the right side, with text automatically adjusting width
+- **Fallback Graceful**: If no relevant images are found, slides work perfectly without them
+- **High Quality**: Images are sourced from Pixabay's business category with minimum 800px width
+
+### Image Categories by Slide Type:
+- **Problem**: Business challenges, pain points, customer frustrations
+- **Solution**: Innovation, technology, problem-solving
+- **Market**: Analysis charts, market research, trends
+- **Business Model**: Strategy, revenue, business planning
+- **Traction**: Growth charts, success metrics, achievements
+- **Team**: Professional meetings, collaboration, startup teams
+- **Ask**: Investment, funding, handshakes, business deals
+
 ## Getting Started
 
 ### Prerequisites
 
 - [Node.js](https://nodejs.org/) (v18 or higher recommended)
 - [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
+- [Pixabay API Key](https://pixabay.com/api/docs/) (free, 5,000 requests/month)
 
 ### Installation
 
@@ -80,6 +102,22 @@ The multi-step form collects essential startup information:
    npm install
    # or
    yarn install
+   ```
+
+### Environment Setup
+
+1. Copy the environment template:
+   ```sh
+   cp env.example .env
+   ```
+
+2. Add your API keys to `.env`:
+   ```env
+   # Gemini AI API Key (for content enhancement)
+   VITE_GEMINI_API_KEY=your_gemini_api_key_here
+   
+   # Pixabay API Key (for relevant images)
+   VITE_PIXABAY_API_KEY=your_pixabay_api_key_here
    ```
 
 ### Running the App

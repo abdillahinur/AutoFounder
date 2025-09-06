@@ -1,6 +1,7 @@
 import pptxgen from "pptxgenjs";
 import { deckTemplates } from "../lib/deckTemplates";
 import { enhanceDeckContent, generateSlideHeaders } from "../src/lib/ai/gemini";
+import { getRelevantImage, imageUrlToBase64 } from "../src/lib/images/pixabay";
 
 // Define a type for slide field metadata
 interface SlideFieldMeta {
@@ -16,7 +17,7 @@ function formatBulletPoints(text: string, defaultOptions: any): any[] {
   // Split by line breaks and filter out empty lines
   const lines = text.split('\n').filter(line => line.trim());
   
-  return lines.map((line, index) => {
+  return lines.map((line) => {
     // Remove any asterisks or bullet symbols from the beginning of the line
     const cleanLine = line.trim().replace(/^[\*\•\-\+]\s*/, '');
     
@@ -89,9 +90,11 @@ export async function generatePitchDeckPPTX(userInput: Record<string, string>, o
     ask: "The Ask"
   };
 
-  slideOrder.forEach((slideKey) => {
+  // Process slides with smart image integration
+  for (const slideKey of slideOrder) {
     const tmpl = deckTemplates[slideKey as SlideKey];
-    if (!tmpl) return; // Defensive: skip if template missing
+    if (!tmpl) continue; // Defensive: skip if template missing
+    
     const slide = pptx.addSlide();
     slide.background = { path: contentBg };
     
@@ -101,7 +104,31 @@ export async function generatePitchDeckPPTX(userInput: Record<string, string>, o
       x: 1, y: 0.5, fontSize: 32, color: "#2563eb", bold: true, w: 8, h: 0.8
     });
     
-    Object.entries(tmpl.fields).forEach(([field, meta], idx) => {
+    // Try to get a relevant image for this slide
+    let imageAdded = false;
+    try {
+      const relevantImage = await getRelevantImage(slideKey, enhancedInput);
+      if (relevantImage) {
+        const base64Image = await imageUrlToBase64(relevantImage.webformatURL);
+        if (base64Image) {
+          // Add image to the right side of the slide
+          slide.addImage({
+            data: base64Image,
+            x: 6, y: 1.5, w: 3.5, h: 3,
+            sizing: { type: 'contain', w: 3.5, h: 3 }
+          });
+          imageAdded = true;
+          console.log(`✅ Added relevant image to ${slideKey} slide`);
+        }
+      }
+    } catch (error) {
+      console.warn(`⚠️ Could not add image to ${slideKey} slide:`, error);
+    }
+    
+    // Adjust text width based on whether image was added
+    const textWidth = imageAdded ? 4.5 : 8; // Narrower if image present
+    
+    Object.entries(tmpl.fields).forEach(([field, meta]) => {
       const m = meta as SlideFieldMeta;
       // Defensive: skip if meta is undefined
       if (!m) return;
@@ -117,10 +144,10 @@ export async function generatePitchDeckPPTX(userInput: Record<string, string>, o
       const bulletPoints = formatBulletPoints(textContent, defaultTextOptions);
       
       slide.addText(bulletPoints, {
-        x: 1, y: 1.5, w: 8, h: 4 // Single text box with all bullet points
+        x: 1, y: 1.5, w: textWidth, h: 4 // Adjust width based on image presence
       });
     });
-  });
+  }
 
   // Download the file in the browser
   pptx.writeFile({ fileName: outputFileName });
