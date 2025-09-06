@@ -202,45 +202,31 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
 
   const handleSubmit = async () => {
     setIsSubmitted(true);
-    
     try {
-      // POST to /api/classify endpoint
-      const response = await fetch('/api/classify', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      
+      const { generatePitchDeckPPTX } = await import("../../utils/generatePitchDeckPPTX");
+      console.log("Generating deck...", formData);
+      generatePitchDeckPPTX(formData, "PitchDeck.pptx");
       addToast({
         type: 'success',
         title: 'Deck Generated!',
-        description: 'Your pitch deck is being created...'
+        description: 'Your pitch deck is downloading...'
       });
-
-      // Call the onGenerate callback if provided
       if (onGenerate) {
         await onGenerate(formData);
       }
-      
+      // Close modal immediately after success
+      onOpenChange(false);
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error generating deck:', error);
       addToast({
         type: 'error',
-        title: 'Submission Failed',
+        title: 'Generation Failed',
         description: 'There was an error creating your deck. Please try again.'
       });
+      setIsSubmitted(false); // Reset immediately on error
+      return;
     }
-    
     setTimeout(() => setIsSubmitted(false), 3000);
-    setTimeout(() => onOpenChange(false), 3000);
   };
 
   const handleReset = () => {
@@ -601,9 +587,11 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
 
                 <button
                   onClick={handleNext}
-                  disabled={!isReviewStep && (!formData[currentQuestion.id] || formData[currentQuestion.id].trim() === '')}
+                  disabled={isSubmitted || (!isReviewStep && (!formData[currentQuestion.id] || formData[currentQuestion.id].trim() === ''))}
                   className={`px-6 py-3 text-lg font-semibold rounded-xl border-0 transition-all duration-200 flex items-center ${
-                    !isReviewStep && (!formData[currentQuestion.id] || formData[currentQuestion.id].trim() === '')
+                    isSubmitted
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : !isReviewStep && (!formData[currentQuestion.id] || formData[currentQuestion.id].trim() === '')
                       ? "bg-gray-300 text-gray-500 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700 text-white"
                   }`}
@@ -611,7 +599,7 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
                   {isReviewStep ? (
                     <>
                       <Check className="w-5 h-5 mr-2" />
-                      Generate Deck
+                      {isSubmitted ? 'Generating...' : 'Generate Deck'}
                     </>
                   ) : (
                     <>

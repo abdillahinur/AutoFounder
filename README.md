@@ -4,38 +4,43 @@ AutoFounder is a web application that helps founders go from idea to investor in
 
 ## Tech Stack
 
-- **React** & **TypeScript**: Robust, type-safe UI development
-- **Vite**: Fast development/build tool
-- **TailwindCSS**: Utility-first CSS framework
-- **Zod**: Schema validation for forms and APIs
-- **Stripe**: Payment processing for premium features
-- **Resend**: Transactional email delivery
-- **uuid**: Unique project and tracking IDs
-- **html2pdf.js**: Client-side PDF export
-- **clsx**: Conditional className utility
-- **framer-motion**: UI animations and transitions
-- **lucide-react**: Icon library
+AutoFounder is built with a modern, production-ready stack:
 
-All templates are custom Tailwind layouts. No external template bundles. Local/in-memory storage for hackathon speed.
+- **React** & **TypeScript**: For building robust, type-safe user interfaces.
+- **Vite**: Fast development server and build tool for React projects.
+- **TailwindCSS**: Utility-first CSS framework for rapid UI development.
+- **Zod**: TypeScript-first schema validation for form and API data.
+- **Stripe**: Payment processing for unlocking premium features.
+- **Resend**: Transactional email delivery for investor outreach.
+- **uuid**: For generating unique project and tracking IDs.
+- **html2pdf.js**: Client-side PDF export of pitch decks.
+- **pptxgenjs**: PowerPoint (.pptx) export of pitch decks.
+- **clsx**: Utility for conditionally joining classNames.
+- **framer-motion**: Animations and transitions for UI components.
+- **lucide-react**: Icon library for modern React apps.
+
+The app is designed for hackathon speed: local/in-memory storage, no external template bundles, and all templates are custom Tailwind layouts.
 
 ## Features
 
-- AI-generated pitch decks
-- Curated investor database
-- Personalized intro emails
-- Real-time deck view notifications
-- Animated UI
-- PDF export (with watermark for free users)
-- Stripe Checkout for watermark removal
-- Resend integration for real outbound emails
+- **AI-generated pitch decks** with founder-friendly narratives
+- **Curated investor database** for targeted outreach
+- **Personalized intro emails** to investors
+- **Real-time notifications** when your deck is viewed
+- **Animated UI** with framer-motion
+- **Export to PDF and PowerPoint** (with watermark for free users)
+- **Stripe Checkout** for watermark-free exports
+- Built with **React**, **TypeScript**, **Vite**, and **TailwindCSS**
 
 ## Getting Started
 
 ### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher)
+
+- [Node.js](https://nodejs.org/) (v18 or higher recommended)
 - [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
 ### Installation
+
 1. Clone the repository:
    ```sh
    git clone <repo-url>
@@ -49,12 +54,14 @@ All templates are custom Tailwind layouts. No external template bundles. Local/i
    ```
 
 ### Running the App
+
 To start the development server:
 ```sh
 npm run dev
 # or
 yarn dev
 ```
+The app will be available at [http://localhost:5173](http://localhost:5173) by default.
 
 To build for production:
 ```sh
@@ -71,6 +78,7 @@ yarn preview
 ```
 
 ### Linting
+
 To run ESLint:
 ```sh
 npm run lint
@@ -79,8 +87,10 @@ yarn lint
 ```
 
 ## Contributors
+
 - Built by founders for founders at Hackathon 3.0
 - (Add your names/usernames here)
 
 ## License
+
 (Add your license here, e.g., MIT)
