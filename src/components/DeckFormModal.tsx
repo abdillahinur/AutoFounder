@@ -210,7 +210,8 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
       addToast({
         type: 'success',
         title: 'Deck Generated!',
-        description: 'Your pitch deck is downloading...'
+        description: 'Your pitch deck is downloading...',
+        duration: 3000 // Auto-dismiss after 3 seconds
       });
       if (onGenerate) {
         await onGenerate(formData);
