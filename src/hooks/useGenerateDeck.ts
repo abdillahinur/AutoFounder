@@ -89,23 +89,59 @@ export function useGenerateDeck() {
     // Use provided pre-opened window if supplied; otherwise open placeholder synchronously
     const placeholder = preopenedWindow ?? window.open('about:blank', '_blank', 'noopener=false');
 
-  // Try to enhance with Gemini (lazy import). If it fails, continue with original payload.
-    let enhancedPayload: FormPayload = payload;
+    // Convert FormPayload to the format expected by AI enhancement
+    const formData: Record<string, string> = {
+      startupName: payload.title || '',
+      oneLiner: payload.slides?.[0]?.bullets?.[0] || '',
+      problem: payload.slides?.find(s => s.heading.toLowerCase().includes('problem'))?.bullets?.[0] || '',
+      solution: payload.slides?.find(s => s.heading.toLowerCase().includes('solution'))?.bullets?.[0] || '',
+      customer: payload.slides?.find(s => s.heading.toLowerCase().includes('customer'))?.bullets?.[0] || '',
+      traction: payload.slides?.find(s => s.heading.toLowerCase().includes('traction'))?.bullets?.[0] || '',
+      ask: payload.slides?.find(s => s.heading.toLowerCase().includes('ask'))?.bullets?.[0] || '',
+      model: payload.slides?.find(s => s.heading.toLowerCase().includes('model'))?.bullets?.[0] || '',
+      market: payload.slides?.find(s => s.heading.toLowerCase().includes('market'))?.bullets?.[0] || '',
+      competition: payload.slides?.find(s => s.heading.toLowerCase().includes('competition'))?.bullets?.[0] || '',
+      team: payload.slides?.find(s => s.heading.toLowerCase().includes('team'))?.bullets?.[0] || '',
+      roadmap: payload.slides?.find(s => s.heading.toLowerCase().includes('roadmap'))?.bullets?.[0] || '',
+      contact: payload.slides?.find(s => s.heading.toLowerCase().includes('contact'))?.bullets?.[0] || '',
+    };
+
+    // Try to enhance with Gemini (lazy import). If it fails, continue with original payload.
+    let enhancedInput = formData;
+    let slideHeaders: Record<string, string> = {};
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const mod = await import('../lib/ai/gemini');
       if (mod && typeof mod.enhanceDeckContent === 'function') {
-        // gemini enhancer may return a record; coerce to FormPayload if possible
-        // It's expected to produce { title, slides }
-        const result = await mod.enhanceDeckContent(payload as any);
-        if (result && typeof result === 'object' && 'title' in result && Array.isArray((result as any).slides)) {
-          enhancedPayload = (result as unknown) as FormPayload;
-        }
+        enhancedInput = await mod.enhanceDeckContent(formData);
+        slideHeaders = await mod.generateSlideHeaders(formData);
+        console.log('✅ Deck content enhanced successfully');
       }
     } catch (e) {
       // Enhancement unavailable; fall back to original
-      console.warn('Gemini enhanceDeckContent unavailable or failed', e);
+      console.warn('Gemini enhancement unavailable or failed', e);
     }
+
+    // Create enhanced slides using AI-enhanced content
+    const enhancedSlides = [
+      { heading: enhancedInput.startupName || payload.title, bullets: [enhancedInput.oneLiner || ''] },
+      { heading: slideHeaders.problem || 'Problem', bullets: enhancedInput.problem ? enhancedInput.problem.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.solution || 'Solution', bullets: enhancedInput.solution ? enhancedInput.solution.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.customer || 'Target Customer', bullets: enhancedInput.customer ? enhancedInput.customer.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.traction || 'Traction', bullets: enhancedInput.traction ? enhancedInput.traction.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.ask || 'Ask', bullets: enhancedInput.ask ? enhancedInput.ask.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.model || 'Business Model', bullets: enhancedInput.model ? enhancedInput.model.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.market || 'Market', bullets: enhancedInput.market ? enhancedInput.market.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.competition || 'Competition', bullets: enhancedInput.competition ? enhancedInput.competition.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.team || 'Team', bullets: enhancedInput.team ? enhancedInput.team.split('\n').filter(line => line.trim()) : [] },
+      { heading: slideHeaders.roadmap || 'Roadmap', bullets: enhancedInput.roadmap ? enhancedInput.roadmap.split('\n').filter(line => line.trim()) : [] },
+      { heading: 'Contact', bullets: enhancedInput.contact ? enhancedInput.contact.split('\n').filter(line => line.trim()) : [] },
+    ].filter(slide => slide.bullets.length > 0);
+
+    const enhancedPayload: FormPayload = {
+      title: enhancedInput.startupName || payload.title,
+      slides: enhancedSlides
+    };
 
     const deck = buildDeterministicDeck(enhancedPayload);
     const key = `deck:${deck.id}`;
