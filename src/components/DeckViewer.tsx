@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye, FileText } from 'lucide-react';
 import type { Deck } from '../../utils/generateDeckJSON';
 
 interface PPTViewerProps {
@@ -28,6 +28,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [preparing, setPreparing] = useState(false);
+  const [showScript, setShowScript] = useState(false);
 
   // Debug: Log what we received
   console.log('🔍 PPTViewer received deck:', deck);
@@ -211,6 +212,13 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                 {!isProUser && <Lock className="w-4 h-4" />}
                 <Edit3 className="w-4 h-4" />
                 <span>Edit</span>
+              </button>
+              <button
+                onClick={() => setShowScript(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+              >
+                <FileText className="w-4 h-4" />
+                <span>Script</span>
               </button>
               <button
                 onClick={handleDownload}
@@ -453,6 +461,79 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                 <button className="flex-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-purple-700 transition-all">
                   Upgrade Now
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Script Modal */}
+      {showScript && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Presentation Script</h2>
+                <button
+                  onClick={() => setShowScript(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[60vh]">
+              {(deck.meta as any)?.presentationScript ? (
+                <div className="space-y-6">
+                  {(deck.meta as any).presentationScript.map((section: any, index: number) => (
+                    <div key={index} className="border-l-4 border-purple-500 pl-4">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                        {index + 1}. {section.title}
+                      </h3>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Duration: {section.duration}
+                      </p>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-gray-800 whitespace-pre-wrap">{section.script}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8">
+                  <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Script Available</h3>
+                  <p className="text-gray-600">
+                    The presentation script wasn't generated for this deck. Try regenerating the deck to create a script.
+                  </p>
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex justify-end space-x-3">
+                <button
+                  onClick={() => setShowScript(false)}
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+                {(deck.meta as any)?.presentationScript && (
+                  <button
+                    onClick={() => {
+                      const scriptText = (deck.meta as any).presentationScript
+                        .map((section: any, index: number) => 
+                          `${index + 1}. ${section.title}\nDuration: ${section.duration}\n\n${section.script}\n\n---\n`
+                        )
+                        .join('\n');
+                      navigator.clipboard.writeText(scriptText);
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                  >
+                    Copy Script
+                  </button>
+                )}
               </div>
             </div>
           </div>
