@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTextTone } from '../hooks/useTextTone';
-import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye, FileText } from 'lucide-react';
 import { SlideFrame } from './SlideFrame';
 import type { SlideFormat } from '../constants/slide';
 import type { Deck } from '../../utils/generateDeckJSON';
@@ -226,6 +226,13 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                   {!isProUser && <Lock className="w-4 h-4 text-current" />}
                   <Edit3 className="w-4 h-4 text-current" />
                   <span>Edit</span>
+                </button>
+                <button
+                  onClick={() => setShowScript(true)}
+                  className="flex items-center space-x-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium hover:bg-purple-700 transition-colors"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span>Script</span>
                 </button>
                 <button
                   onClick={handleDownload}

@@ -39,19 +39,22 @@ Team: ${enhancedInput.team || 'Experienced team'}
 Ask: ${enhancedInput.ask || 'Investment opportunity'}
 
 CRITICAL INSTRUCTIONS:
-1. **DON'T just repeat slide bullets** - Create original, compelling content that tells a story
-2. **Use storytelling techniques** - Personal anecdotes, customer stories, analogies, industry insights
+1. **Stay focused on slide content** - Only discuss topics that are actually on the slides
+2. **Use storytelling techniques** - Transform slide bullets into engaging narratives
 3. **Make it conversational** - Write as if speaking to investors, not reading a report
 4. **Focus on general market data** - Use broad industry trends, not specific product metrics
 5. **Create emotional hooks** - Start with something that grabs attention and builds investment
 6. **Include speaking cues** - Add [pause], [gesture], [lean in], [smile] for delivery guidance
 7. **AVOID fake metrics** - Don't invent specific numbers about this product's performance
+8. **Don't introduce new topics** - Only elaborate on what's already in the slide content
 
 EXAMPLE OF GOOD SCRIPT STYLE:
 "Michael Jordan once said, 'I've failed over and over and over again in my life, and that is why I succeed.' [pause] But what if we could eliminate some of that failure through better training? [lean in] I'm [Name], founder of ${startupName}, and today I'm going to show you how we're revolutionizing basketball training with real-time feedback technology. [pause] The sports technology market is growing rapidly, with wearable devices becoming mainstream across athletics."
 
 FORMAT: Return JSON array with complete, ready-to-deliver scripts for a 5-6 minute pitch.
-Create ONE script section for EACH slide that will be generated. Base the script on the actual slide content provided above.
+Create ONE script section for EACH slide that will be generated. Base the script ONLY on the actual slide content provided above.
+
+IMPORTANT: Only create scripts for slides that have content. Don't add extra sections or topics not mentioned in the slide content.
 
 The slides will be generated in this order:
 1. Title/Startup Name slide
