@@ -16,10 +16,13 @@ import {
   Rocket,
   Play
 } from 'lucide-react';
+import DeckFormModal, { DeckFormPayload } from './components/DeckFormModal';
+import { ToastProvider } from './components/ui/Toast';
 
 function App() {
   const [isAnimating, setIsAnimating] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -38,8 +41,16 @@ function App() {
     setMobileMenuOpen(false);
   };
 
+  const handleGenerate = async (payload: DeckFormPayload) => {
+    // TODO: call Convex action generateDeck(payload)
+    // TODO: call Convex action sendToInvestors(deckId)
+    // TODO: auth + user-bound persistence
+    console.log('Generated deck with payload:', payload);
+  };
+
   return (
-    <div className="min-h-screen bg-white text-gray-900" style={{ colorScheme: 'light' }}>
+    <ToastProvider>
+      <div className="min-h-screen bg-white text-gray-900" style={{ colorScheme: 'light' }}>
       {/* Hero Section */}
       <section className="relative bg-white overflow-hidden">
         {/* Navigation */}
@@ -133,7 +144,8 @@ function App() {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <button 
-                  onClick={() => scrollToSection('cta')}
+                  data-testid="cta-generate"
+                  onClick={() => setModalOpen(true)}
                   className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2 shadow-sm"
                 >
                   <span>Generate Your Deck</span>
@@ -572,7 +584,11 @@ function App() {
             stop pitching slides.<br />start pitching <span className="underline decoration-blue-400">investors</span>.
           </h2>
 
-          <button className="bg-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-blue-700 transition-all duration-200 transform hover:-translate-y-1 flex items-center space-x-3 mx-auto shadow-lg">
+          <button 
+            data-testid="cta-generate"
+            onClick={() => setModalOpen(true)}
+            className="bg-blue-600 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg text-base sm:text-lg font-semibold hover:bg-blue-700 transition-all duration-200 transform hover:-translate-y-1 flex items-center space-x-3 mx-auto shadow-lg"
+          >
             <Rocket className="w-5 h-5" />
             <span>Generate Your Deck Now</span>
           </button>
@@ -604,7 +620,15 @@ function App() {
           </div>
         </div>
       </footer>
-    </div>
+
+      {/* Deck Form Modal */}
+      <DeckFormModal 
+        open={modalOpen} 
+        onOpenChange={setModalOpen} 
+        onGenerate={handleGenerate}
+      />
+      </div>
+    </ToastProvider>
   );
 }
 
