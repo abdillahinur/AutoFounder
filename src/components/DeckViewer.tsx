@@ -33,6 +33,8 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   console.log('🔍 PPTViewer received deck:', deck);
   console.log('🔍 Deck type:', typeof deck);
   console.log('🔍 Deck keys:', deck ? Object.keys(deck) : 'No deck');
+  // Debug: surface theme metadata which the viewer depends on
+  console.debug('🔍 deck.meta', (deck as any)?.meta);
 
   // Safety check - if no deck
   if (!deck) {
@@ -146,6 +148,41 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   const textTone = (deck as any)?.meta?.textTone || (assets && assets.defaultText) || 'dark';
   const textClass = textTone === 'light' ? 'text-white' : 'text-black';
 
+  // Compute and log the effective background chosen for each slide (helps catch missing assets or bad paths)
+  try {
+    const slideBgs: Array<{ idx: number; bg: string | null; useImage: boolean }> = slides.map((s, idx) => {
+      const imageUrl = (s as any).imageUrl || (s as any).image;
+      if (imageUrl) return { idx, bg: String(imageUrl), useImage: true };
+      if (assets) {
+        const bg = idx === 0 ? (assets.coverBg || assets.contentBg) : (assets.contentBg || assets.coverBg);
+        return { idx, bg: bg ?? null, useImage: false };
+      }
+      return { idx, bg: null, useImage: false };
+    });
+    console.debug('🔍 computed slide backgrounds', slideBgs);
+  } catch (e) {
+    console.warn('Failed to compute slide backgrounds for debug', e);
+  }
+
+  // Compute the inline background style for the currently visible slide.
+  const imageUrlForCurrent = (currentSlideData as any)?.imageUrl || (currentSlideData as any)?.image;
+  let currentBgStyle: React.CSSProperties | undefined = undefined;
+  try {
+    if (!imageUrlForCurrent) {
+      if (assets) {
+        const bg = currentSlide === 0 ? (assets.coverBg || assets.contentBg) : (assets.contentBg || assets.coverBg);
+        if (bg) {
+          currentBgStyle = { backgroundImage: `url(${bg})`, backgroundSize: 'cover', backgroundPosition: 'center' };
+        }
+      } else {
+        // soft fallback gradient when no assets are available
+        currentBgStyle = { background: 'linear-gradient(135deg, #f8fafc 0%, #eef2ff 100%)' };
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to compute currentBgStyle', e);
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -251,38 +288,63 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                   </>
                 )}
 
-                {/* Slide Content - Using EXACT same rendering as original DeckViewer */}
+                {/* Slide Content - themed rendering: apply background when no slide image present */}
                 <div className="h-full p-12 flex flex-col justify-center">
                   {currentSlideData && (
-                    <div>
-                      {/* Show image if available - EXACT same logic as original */}
-                      {((currentSlideData as any).imageUrl || (currentSlideData as any).image) && (
-                        <div className="mb-6 text-center">
-                          <img 
-                            src={(currentSlideData as any).imageUrl || (currentSlideData as any).image} 
-                            alt={(currentSlideData as any).title || ''} 
-                            className="max-h-40 object-contain rounded mx-auto" 
-                          />
+                    <article style={currentBgStyle} className="h-full w-full rounded-2xl p-6 shadow border relative overflow-hidden">
+                      {/* Cover slide: centered layout */}
+                      {currentSlide === 0 ? (
+                        <div className="h-full w-full flex flex-col items-center justify-center text-center px-8">
+                          {/* If an explicit image exists, show it above the title */}
+                          {((currentSlideData as any).imageUrl || (currentSlideData as any).image) && (
+                            <div className="mb-6">
+                              <img
+                                src={(currentSlideData as any).imageUrl || (currentSlideData as any).image}
+                                alt={(currentSlideData as any).title || ''}
+                                className="max-h-36 object-contain rounded mx-auto"
+                              />
+                            </div>
+                          )}
+
+                          <h1 className={`text-5xl font-extrabold leading-tight mb-4 ${textClass}`}>
+                            {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
+                          </h1>
+                          <p className={`text-xl max-w-2xl ${textClass} opacity-90`}>
+                            {Array.isArray((currentSlideData as any).bullets) ? ((currentSlideData as any).bullets[0] || '') : ''}
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          {/* If a slide image is provided, show it and don't treat it as background */}
+                          {((currentSlideData as any).imageUrl || (currentSlideData as any).image) ? (
+                            <div className="mb-6 text-center">
+                              <img
+                                src={(currentSlideData as any).imageUrl || (currentSlideData as any).image}
+                                alt={(currentSlideData as any).title || ''}
+                                className="max-h-40 object-contain rounded mx-auto"
+                              />
+                            </div>
+                          ) : null}
+
+                          {/* Title uses the theme text color */}
+                          <h1 className={`text-4xl font-bold mb-6 ${textClass}`}>
+                            {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
+                          </h1>
+
+                          {/* Bullets - use themed text color */}
+                          {Array.isArray((currentSlideData as any).bullets) && (
+                            <ul className="space-y-4">
+                              {(currentSlideData as any).bullets.map((bullet: string, idx: number) => (
+                                <li key={idx} className="flex items-start">
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                                  <span className={`text-lg ${textClass}`}>{bullet}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
                         </div>
                       )}
-                      
-                      {/* Title - EXACT same logic as original */}
-                      <h1 className="text-4xl font-bold text-gray-900 mb-6">
-                        {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
-                      </h1>
-                      
-                      {/* Bullets - EXACT same logic as original */}
-                      {Array.isArray((currentSlideData as any).bullets) && (
-                        <ul className="space-y-4">
-                          {(currentSlideData as any).bullets.map((bullet: string, idx: number) => (
-                            <li key={idx} className="flex items-start">
-                              <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                              <span className="text-lg text-gray-700">{bullet}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
+                    </article>
                   )}
                 </div>
               </div>

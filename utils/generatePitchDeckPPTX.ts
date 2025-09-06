@@ -55,23 +55,34 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
   }
 
   // Use public paths for images so they work in the browser
-  const coverBg = "/images/bg-cover-ai-infra-v1.png";
-  const contentBg = "/images/bg-content-ai-infra-v1.png";
+  // Prefer theme assets supplied by the caller (userInput.meta.themeAssets or userInput.themeAssets)
+  const suppliedAssets = (userInput?.meta && (userInput.meta as any).themeAssets) || (userInput?.themeAssets);
+  const defaultCover = "/images/bg-cover-ai-infra-v1.png";
+  const defaultContent = "/images/bg-content-ai-infra-v1.png";
+  const coverBg = suppliedAssets?.coverBg || defaultCover;
+  const contentBg = suppliedAssets?.contentBg || defaultContent;
+
+  const textTone = (userInput?.meta && (userInput.meta as any).textTone) || (userInput?.textTone) || (suppliedAssets && suppliedAssets.defaultText) || 'dark';
+  const textColor = textTone === 'light' ? 'FFFFFF' : '000000';
 
   // Cover slide
   const cover = deckTemplates.cover;
   const coverSlide = pptx.addSlide();
-  coverSlide.background = { path: coverBg };
+  // If a coverBg asset exists, use it as background; otherwise fallback to a soft color
+  if (coverBg) {
+    try { coverSlide.background = { path: coverBg }; } catch (e) { console.warn('pptx cover background failed', e); }
+  } else {
+    try { coverSlide.background = { color: 'FFFFFF' }; } catch (e) {}
+  }
   // Defensive: check for field existence and use correct keys
   const coverStartupName = cover.fields.startupName;
   const coverOneLiner = cover.fields.oneLiner;
+  // Centered cover layout; use theme text color for contrast
   coverSlide.addText(enhancedInput.startupName || coverStartupName?.placeholder || "[Startup Name]", {
-    x: 1, y: 2, fontSize: coverStartupName?.fontSize || 40, bold: true, color: coverStartupName?.color || "#222222",
-    align: "center", w: 8, h: 1
+    x: 0.5, y: 1.8, fontSize: coverStartupName?.fontSize || 48, bold: true, color: textColor, align: "center", w: 9, h: 1.6
   });
   coverSlide.addText(enhancedInput.oneLiner || coverOneLiner?.placeholder || "[One-line Pitch]", {
-    x: 1, y: 3, fontSize: coverOneLiner?.fontSize || 28, color: coverOneLiner?.color || "#888888",
-    align: "center", w: 8, h: 1
+    x: 1, y: 3.2, fontSize: coverOneLiner?.fontSize || 28, color: textColor, align: "center", w: 8, h: 1.2
   });
 
   // Content slides
@@ -101,13 +112,10 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
     const tmpl = deckTemplates[slideKey as SlideKey];
     if (!tmpl) continue; // Defensive: skip if template missing
     
-    const slide = pptx.addSlide();
-    slide.background = { path: contentBg };
+  const slide = pptx.addSlide();
 
-    const header = slideHeaders[slideKey] || defaultHeaders[slideKey as keyof typeof defaultHeaders];
-    slide.addText(header, {
-      x: 1, y: 0.5, fontSize: 32, color: "#2563eb", bold: true, w: 8, h: 0.8
-    });
+  const header = slideHeaders[slideKey] || defaultHeaders[slideKey as keyof typeof defaultHeaders];
+  // We'll only set the slide background if we don't add a content image below
     
     // Try to get a relevant image for this slide
     let imageAdded = false;
@@ -130,9 +138,18 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
       console.warn(`⚠️ Could not add image to ${slideKey} slide:`, error);
     }
     
+    // If we didn't add an image, apply the themed content background
+    if (!imageAdded) {
+      if (contentBg) {
+        try { slide.background = { path: contentBg }; } catch (e) { console.warn('pptx content background failed', e); }
+      } else {
+        try { slide.background = { color: 'FFFFFF' }; } catch (e) {}
+      }
+    }
+
     // Adjust text width based on whether image was added
     const textWidth = imageAdded ? 4.5 : 8; // Narrower if image present
-    
+
     Object.entries(tmpl.fields).forEach(([field, meta]) => {
       const m = meta as SlideFieldMeta;
       if (!m) return;
@@ -140,7 +157,7 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
       const textContent = enhancedInput[field] || m.placeholder || `[${field}]`;
       const defaultTextOptions = {
         fontSize: m.fontSize || 24,
-        color: m.color || "#444444",
+        color: textColor || (m.color || "#444444"),
         bold: m.fontWeight === "bold",
       };
       
