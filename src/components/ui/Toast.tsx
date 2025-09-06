@@ -15,7 +15,7 @@ interface ToastProps {
 
 interface ToastContextType {
   toasts: Toast[];
-  addToast: (toast: Omit<Toast, 'id'>) => void;
+  addToast: (toast: Omit<Toast, 'id'>) => string;
   removeToast: (id: string) => void;
 }
 
@@ -32,9 +32,10 @@ const ToastContext = React.createContext<ToastContextType | undefined>(undefined
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  const addToast = (toast: Omit<Toast, 'id'>) => {
+  const addToast = (toast: Omit<Toast, 'id'>): string => {
     const id = Math.random().toString(36).substr(2, 9);
     setToasts(prev => [...prev, { ...toast, id }]);
+    return id;
   };
 
   const removeToast = (id: string) => {

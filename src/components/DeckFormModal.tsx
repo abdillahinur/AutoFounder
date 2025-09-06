@@ -163,7 +163,7 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
-  const { addToast } = useToast();
+  const { addToast, removeToast } = useToast();
   const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
 
   const totalSteps = requiredQuestions.length + 1; // +1 for review step
@@ -203,23 +203,41 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
 
   const handleSubmit = async () => {
     setIsSubmitted(true);
+    
+    // Show "Generating..." toast immediately
+    const generatingToastId = addToast({
+      type: 'info',
+      title: 'Deck Generating...',
+      description: 'Creating your pitch deck with AI enhancement...',
+      duration: 0 // Don't auto-dismiss - we'll dismiss it manually
+    });
+    
     try {
       const { generatePitchDeckPPTX } = await import("../../utils/generatePitchDeckPPTX");
       console.log("Generating deck...", formData);
       await generatePitchDeckPPTX(formData, "PitchDeck.pptx");
+      
+      // Remove the "Generating..." toast and show success
+      removeToast(generatingToastId);
       addToast({
         type: 'success',
         title: 'Deck Generated!',
         description: 'Your pitch deck is downloading...',
         duration: 3000 // Auto-dismiss after 3 seconds
       });
+      
       if (onGenerate) {
         await onGenerate(formData);
       }
-      // Close modal immediately after success
-      onOpenChange(false);
+      // Close modal after a short delay to let toast show
+      setTimeout(() => {
+        onOpenChange(false);
+      }, 100);
     } catch (error) {
       console.error('Error generating deck:', error);
+      
+      // Remove the "Generating..." toast and show error
+      removeToast(generatingToastId);
       addToast({
         type: 'error',
         title: 'Generation Failed',
@@ -254,7 +272,11 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
     if (stepIndex <= currentStep || (stepIndex === currentStep + 1 && formData[requiredQuestions[currentStep].id]?.trim())) {
       setCurrentStep(stepIndex);
     } else {
-      addToast('Please complete the current question before jumping ahead', 'error');
+      addToast({
+        type: 'error',
+        title: 'Cannot Skip Questions',
+        description: 'Please complete the current question before jumping ahead'
+      });
     }
   };
 
