@@ -36,3 +36,7 @@ coverage/
 # package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Ensure theme placeholders are included
+!public/images/themes/
+!public/images/themes/**

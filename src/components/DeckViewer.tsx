@@ -92,23 +92,41 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
       const PPTX = (PPTXModule && (PPTXModule.default || PPTXModule)) as any;
       const pres = new PPTX();
 
-      for (const s of deck.slides) {
+      const assets = (deck as any)?.meta?.themeAssets as { coverBg?: string; contentBg?: string } | undefined;
+      const textTone = (deck as any)?.meta?.textTone || (assets && (assets as any).defaultText) || 'dark';
+      const textColor = textTone === 'light' ? 'FFFFFF' : '000000';
+
+      for (let idx = 0; idx < deck.slides.length; idx++) {
+        const s = deck.slides[idx] as any;
         const slide = pres.addSlide();
-        const heading = (s as any).title ?? (s as any).heading ?? '';
+
+        // Set slide background from theme assets when available
+        if (assets) {
+          if (idx === 0 && assets.coverBg) {
+            try { slide.background = { path: assets.coverBg }; } catch (e) { console.warn('pptx background set failed', e); }
+          } else if (assets.contentBg) {
+            try { slide.background = { path: assets.contentBg }; } catch (e) { console.warn('pptx background set failed', e); }
+          }
+        } else {
+          // fallback solid white background
+          try { slide.background = { color: 'FFFFFF' }; } catch (e) { /* ignore */ }
+        }
+
+        const heading = s.title ?? s.heading ?? '';
         if (heading) {
-          slide.addText(heading, { x: 0.5, y: 0.4, w: '90%', h: 0.8, fontSize: 26, bold: true });
+          slide.addText(heading, { x: 0.5, y: 0.4, w: '90%', h: 0.8, fontSize: 26, bold: true, color: textColor });
         }
 
-        const bullets = Array.isArray((s as any).bullets) ? (s as any).bullets : [];
+        const bullets = Array.isArray(s.bullets) ? s.bullets : [];
         if (bullets.length) {
-          slide.addText(bullets.join('\n'), { x: 0.5, y: 1.4, w: '90%', h: 3.5, fontSize: 14 });
+          slide.addText(bullets.join('\n'), { x: 0.5, y: 1.4, w: '90%', h: 3.5, fontSize: 14, color: textColor });
         }
 
-        const imageUrl = (s as any).imageUrl ?? (s as any).image;
+        const imageUrl = s.imageUrl ?? s.image;
         if (imageUrl) {
           const dataUrl = await fetchImageAsDataUrl(imageUrl);
           if (dataUrl) {
-            slide.addImage({ data: dataUrl, x: 6.0, y: 1.0, w: 3.0 });
+            try { slide.addImage({ data: dataUrl, x: 6.0, y: 1.0, w: 3.0 }); } catch (e) { console.warn('pptx addImage failed', e); }
           }
         }
       }
@@ -123,6 +141,10 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
       setPreparing(false);
     }
   };
+
+  const assets = (deck as any)?.meta?.themeAssets as { coverBg?: string; contentBg?: string; defaultText?: 'light'|'dark' } | undefined;
+  const textTone = (deck as any)?.meta?.textTone || (assets && assets.defaultText) || 'dark';
+  const textClass = textTone === 'light' ? 'text-white' : 'text-black';
 
   return (
     <div className="min-h-screen bg-gray-50">

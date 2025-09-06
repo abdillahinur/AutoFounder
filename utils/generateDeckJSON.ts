@@ -1,10 +1,14 @@
 // Minimal deterministic deck JSON generator for demo flows
-// Exports a Deck type and a generateDeckJSON(payload) function used by App and DeckViewer.
+// Exports types and a generateDeckJSON(payload, opts?) function used by App and DeckViewer.
+
+import type { Category, ThemeKey } from '../src/lib/categoryMap';
 
 export type Slide = {
 	title: string;
 	bullets: string[];
 };
+
+export type ThemeConfig = { coverBg: string; contentBg: string; defaultText: 'light' | 'dark' };
 
 export type Deck = {
 	id: string;
@@ -20,15 +24,24 @@ export type Deck = {
 		[k: string]: any;
 	};
 	slides: Slide[];
+	meta?: {
+		category?: Category;
+		theme?: ThemeKey;
+		themeAssets?: ThemeConfig;
+		textTone?: 'light' | 'dark';
+	};
 };
 
 function simpleId() {
 	return Math.random().toString(16).slice(2, 10) + Date.now().toString(16).slice(-6);
 }
 
-export function generateDeckJSON(payload: Record<string, string>): Deck {
+export function generateDeckJSON(
+	payload: Record<string, string>,
+	opts?: { category?: Category; theme?: ThemeKey; themeAssets?: ThemeConfig; textTone?: 'light' | 'dark' }
+): Deck {
 	const id = simpleId();
-	const slug = (payload.startupName || 'startup').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || id.slice(0,8);
+	const slug = (payload.startupName || 'startup').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || id.slice(0, 8);
 	const startupName = payload.startupName || 'Acme AI';
 	const oneLiner = payload.oneLiner || 'AI-generated pitch deck for modern founders.';
 
@@ -38,7 +51,7 @@ export function generateDeckJSON(payload: Record<string, string>): Deck {
 		coverBg: payload.coverBg || '/images/bg-cover-ai-infra-v1.png',
 		contentBg: payload.contentBg || '/images/bg-content-ai-infra-v1.png',
 		coverTextColor: payload.coverTextColor || '#ffffff',
-		contentTextColor: payload.contentTextColor || '#0f172a'
+		contentTextColor: payload.contentTextColor || '#0f172a',
 	};
 
 	const slides: Slide[] = [
@@ -49,14 +62,27 @@ export function generateDeckJSON(payload: Record<string, string>): Deck {
 		{ title: 'Business Model', bullets: ['SaaS subscription', 'Enterprise deals'] },
 		{ title: 'Go-to-Market', bullets: ['Channels', 'Partnerships'] },
 		{ title: 'Team', bullets: ['Founder', 'CTO', 'Advisors'] },
-		{ title: 'Ask', bullets: ['$1M to 18 months growth'] }
+		{ title: 'Ask', bullets: ['$1M to 18 months growth'] },
 	];
 
-	return {
+	const deck: Deck = {
 		id,
 		slug,
 		createdAt: new Date().toISOString(),
 		metadata,
-		slides
+		slides,
+		meta: {},
 	};
+
+	if (opts) {
+		deck.meta = deck.meta || {};
+		if (opts.category) deck.meta.category = opts.category;
+		if (opts.theme) deck.meta.theme = opts.theme;
+		if (opts.themeAssets) deck.meta.themeAssets = opts.themeAssets;
+		deck.meta.textTone = opts.textTone ?? opts.themeAssets?.defaultText ?? (deck.meta.textTone as any) ?? 'dark';
+	}
+
+	return deck;
 }
+
+export default generateDeckJSON;

@@ -1,4 +1,6 @@
 import { useCallback } from 'react';
+import { classifyCategory } from '../lib/classify';
+import type { Category, ThemeKey } from '../lib/categoryMap';
 
 export type SlideInput = {
   heading: string;
@@ -85,7 +87,11 @@ export function buildDeterministicDeck(payload: FormPayload): Deck {
 }
 
 export function useGenerateDeck() {
-  const generate = useCallback(async (payload: FormPayload, preopenedWindow?: Window | null): Promise<string> => {
+  const generate = useCallback(async (
+    payload: FormPayload,
+    preopenedWindow?: Window | null,
+    opts?: { category?: Category; theme?: ThemeKey; themeAssets?: any; textTone?: 'light'|'dark' }
+  ): Promise<string> => {
     // Use provided pre-opened window if supplied; otherwise open placeholder synchronously
     const placeholder = preopenedWindow ?? window.open('about:blank', '_blank', 'noopener=false');
 
@@ -143,9 +149,30 @@ export function useGenerateDeck() {
       slides: enhancedSlides
     };
 
-    const deck = buildDeterministicDeck(enhancedPayload);
-    const key = `deck:${deck.id}`;
+    // Try to classify the enhanced payload to pick category/theme
+    let deck = buildDeterministicDeck(enhancedPayload);
+    try {
+      const { category, theme, assets, confidence } = await classifyCategory(enhancedPayload as any);
+      console.debug('category/theme', { category, theme, confidence });
+      deck.meta = deck.meta || {};
+      deck.meta.category = category;
+      deck.meta.theme = theme;
+      deck.meta.themeAssets = assets as any;
+      deck.meta.textTone = (assets && (assets as any).defaultText) || deck.meta.textTone || 'dark';
+    } catch (e) {
+      console.warn('Classification failed, proceeding without theme metadata', e);
+    }
 
+    // Apply explicit overrides from caller if provided
+    if (opts) {
+      deck.meta = deck.meta || {};
+      if (opts.category) deck.meta.category = opts.category;
+      if (opts.theme) deck.meta.theme = opts.theme;
+      if (opts.themeAssets) deck.meta.themeAssets = opts.themeAssets;
+      if (opts.textTone) deck.meta.textTone = opts.textTone;
+    }
+
+    const key = `deck:${deck.id}`;
     const persisted = persistDeck(key, deck);
     // Broadcast regardless so other tabs can pick it up immediately
     broadcastDeck(key, deck);

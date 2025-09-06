@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Edit2, Plus, Minus, MoreVertical, RotateCcw, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from './ui/Dialog';
+import { Dialog, DialogContent, DialogClose } from './ui/Dialog';
 import { useToast } from './ui/Toast';
 import useGenerateDeck, { FormPayload } from '../hooks/useGenerateDeck';
+import { pickTheme } from '../lib/classify';
+import type { Category } from '../lib/categoryMap';
 
 export type DeckFormPayload = {
   startupName: string;
@@ -202,6 +204,9 @@ export default function DeckFormModal({ open, onOpenChange }: DeckFormModalProps
   };
 
   const { generate } = useGenerateDeck();
+  const [detectedCategory, _setDetectedCategory] = useState<Category | null>(null);
+  const [detectedTheme, setDetectedTheme] = useState<string | null>(null);
+  const [overrideCategory, setOverrideCategory] = useState<Category | null>(null);
 
   const handleSubmit = async () => {
     setIsSubmitted(true);
@@ -237,7 +242,15 @@ export default function DeckFormModal({ open, onOpenChange }: DeckFormModalProps
         ].map(s => ({ ...s, imageUrl: (s as any).imageUrl ?? undefined })).filter(s => (s.bullets && s.bullets.length) || s.imageUrl)
       };
 
-      await generate(mapped, viewerWindow);
+      // If user overrode category, compute theme assets and pass as opts
+      const opts = overrideCategory
+        ? (() => {
+            const { theme, assets } = pickTheme(overrideCategory as any);
+            return { category: overrideCategory, theme, themeAssets: assets, textTone: assets.defaultText };
+          })()
+        : undefined;
+
+      await generate(mapped, viewerWindow, opts);
       // Remove the generating toast and show a brief queued toast
       removeToast(generatingToastId);
       addToast({ type: 'success', title: 'Deck queued', description: 'Opening deck viewer...', duration: 3000 });
@@ -536,6 +549,43 @@ export default function DeckFormModal({ open, onOpenChange }: DeckFormModalProps
                     <div className="space-y-4">
                       <div className="inline-flex items-center gap-2 bg-green-100 text-green-800 px-4 py-2 rounded-lg">
                         <span className="text-sm font-semibold">Final Review</span>
+                      </div>
+                      {/* Detected category / theme (will be populated after enhancement) */}
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm text-gray-600">Category (auto)</div>
+                        <div className="inline-flex items-center gap-2">
+                          <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-800 text-sm">{detectedCategory ?? '—'}</span>
+                          <span className="px-3 py-1 rounded-full bg-gray-50 text-gray-600 text-sm">{detectedTheme ?? 'theme'}</span>
+                        </div>
+
+                        <div className="ml-4">
+                          <label className="text-sm text-gray-500 mr-2">Override</label>
+                          <select
+                            value={overrideCategory ?? ''}
+                            onChange={(e) => {
+                              const val = e.target.value as Category;
+                              setOverrideCategory(val || null);
+                              if (val) {
+                                const { theme } = pickTheme(val as any);
+                                setDetectedTheme(theme);
+                              }
+                            }}
+                            className="border rounded px-2 py-1 text-sm"
+                          >
+                            <option value="">(use auto)</option>
+                            <option value="fintech">Fintech</option>
+                            <option value="devtools">Devtools</option>
+                            <option value="consumer">Consumer</option>
+                            <option value="b2b_saas">B2B SaaS</option>
+                            <option value="healthtech">Healthtech</option>
+                            <option value="ai_infra">AI infra</option>
+                            <option value="marketplace">Marketplace</option>
+                            <option value="edtech">EdTech</option>
+                            <option value="climate">Climate</option>
+                            <option value="other">Other</option>
+                          </select>
+                        </div>
+
                       </div>
 
                       <h2 className="text-3xl lg:text-4xl font-bold text-gray-900">Ready to generate your pitch deck?</h2>
