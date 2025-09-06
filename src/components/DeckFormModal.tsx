@@ -217,14 +217,8 @@ export default function DeckFormModal({ open, onOpenChange, onGenerate }: DeckFo
       console.log("Generating deck...", formData);
       await generatePitchDeckPPTX(formData, "PitchDeck.pptx");
       
-      // Remove the "Generating..." toast and show success
+      // Remove the "Generating..." toast
       removeToast(generatingToastId);
-      addToast({
-        type: 'success',
-        title: 'Deck Generated!',
-        description: 'Your pitch deck is downloading...',
-        duration: 3000 // Auto-dismiss after 3 seconds
-      });
       
       if (onGenerate) {
         await onGenerate(formData);
