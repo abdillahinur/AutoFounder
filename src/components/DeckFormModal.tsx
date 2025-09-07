@@ -211,8 +211,8 @@ export default function DeckFormModal({ open, onOpenChange }: DeckFormModalProps
   const handleSubmit = async () => {
     setIsSubmitted(true);
 
-    // Open a blank window synchronously to avoid popup blockers. We'll pass it to the generator.
-    const viewerWindow = window.open('about:blank', '_blank', 'noopener=false');
+  // Open the loading route synchronously to avoid popup blockers and show the LoadingScreen.
+  const viewerWindow = window.open(`${location.origin}/#loading`, '_blank', 'noopener=false');
 
     // Show a persistent "Generating..." toast while we prepare the deck
     const generatingToastId = addToast({

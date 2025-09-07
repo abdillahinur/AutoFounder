@@ -644,6 +644,8 @@ export function useGenerateDeck() {
     let enhancedInput = formData;
     let slideHeaders: Record<string, string> = {};
     try {
+      // Notify viewer (if opened) that we're enhancing content
+      try { placeholder?.postMessage({ type: 'DECK_STATUS', step: 'Enhancing content…' }, location.origin); } catch {}
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const mod = await import('../lib/ai/gemini');
       if (mod && typeof mod.enhanceDeckContent === 'function') {
@@ -655,8 +657,11 @@ export function useGenerateDeck() {
       console.warn('Gemini enhancement unavailable or failed', e);
     }
 
-    // Create enhanced slides using AI-enhanced content
-    const enhancedSlides = [
+  // Notify viewer that we're generating slides
+  try { placeholder?.postMessage({ type: 'DECK_STATUS', step: 'Generating slides…' }, location.origin); } catch {}
+
+  // Create enhanced slides using AI-enhanced content
+  const enhancedSlides = [
       { heading: enhancedInput.startupName || payload.title, bullets: [enhancedInput.oneLiner || ''] },
       { heading: slideHeaders.problem || 'Problem', bullets: enhancedInput.problem ? enhancedInput.problem.split('\n').filter(line => line.trim()) : [] },
       { heading: slideHeaders.solution || 'Solution', bullets: enhancedInput.solution ? enhancedInput.solution.split('\n').filter(line => line.trim()) : [] },
@@ -676,7 +681,7 @@ export function useGenerateDeck() {
       slides: enhancedSlides
     };
 
-    // Try to classify the enhanced payload to pick category/theme
+  // Try to classify the enhanced payload to pick category/theme
     let deck = buildDeterministicDeck(enhancedPayload);
     try {
       const { category, theme, assets, confidence } = await classifyCategory(enhancedPayload as any);
@@ -699,7 +704,10 @@ export function useGenerateDeck() {
       if (opts.textTone) deck.meta.textTone = opts.textTone;
     }
 
-    // Generate presentation script
+  // Notify viewer that we're preparing the viewer and finalizing the deck
+  try { placeholder?.postMessage({ type: 'DECK_STATUS', step: 'Preparing viewer…' }, location.origin); } catch {}
+
+  // Generate presentation script
     try {
       const presentationScript = await generatePresentationScript(enhancedInput, slideHeaders, enhancedPayload.title);
       
@@ -712,31 +720,47 @@ export function useGenerateDeck() {
 
     const key = `deck:${deck.id}`;
     const persisted = persistDeck(key, deck);
-    // Broadcast regardless so other tabs can pick it up immediately
+    // Broadcast the full deck so other tabs can pick it up immediately
     broadcastDeck(key, deck);
 
-    // If persisted, navigate to #deck=<id>, else embed deck JSON into URL via base64
-    const viewerUrl = persisted
-      ? `${location.origin}/#deck=${deck.id}`
-      : `${location.origin}/#deckdata=${encodeDeckForUrl(deck)}`;
-
-    // Try to navigate the placeholder window; if that fails, open a new tab and close placeholder
+    // Also write the deck and last id to localStorage for LoadingScreen fallback polling
     try {
-      if (placeholder && !placeholder.closed) {
-        placeholder.location.href = viewerUrl;
-      } else {
-        window.open(viewerUrl, '_blank');
-      }
+      localStorage.setItem(key, JSON.stringify(deck));
+      localStorage.setItem('deck:last', deck.id);
     } catch (e) {
-      console.warn('Navigation of placeholder window failed, attempting fallback open', e);
-      try {
-        window.open(viewerUrl, '_blank');
-      } catch (e2) {
-        console.warn('Fallback window.open failed', e2);
-      }
-      try { placeholder?.close(); } catch (e3) {}
+      // ignore storage errors
     }
 
+    // Announce via BroadcastChannel a concise ready message that LoadingScreen listens for
+    try {
+      const bc = new BroadcastChannel('deck:announce');
+      // If we persisted to storage, announce 'local'; otherwise announce inline payload
+      if (persisted) {
+        bc.postMessage({ id: deck.id, mode: 'local' });
+      } else {
+        const payload = encodeDeckForUrl(deck);
+        bc.postMessage({ id: deck.id, mode: 'inline', payload });
+      }
+      setTimeout(() => { try { bc.close(); } catch (e) {} }, 1500);
+    } catch (e) {
+      console.warn('deck announce via BroadcastChannel failed', e);
+    }
+
+    // Also post a message directly to the placeholder window (if same-origin)
+    try {
+      if (placeholder && !placeholder.closed) {
+        if (persisted) {
+          placeholder.postMessage({ type: 'DECK_READY', id: deck.id, mode: 'local' }, location.origin);
+        } else {
+          const payload = encodeDeckForUrl(deck);
+          placeholder.postMessage({ type: 'DECK_READY', id: deck.id, mode: 'inline', payload }, location.origin);
+        }
+      }
+    } catch (e) {
+      // ignore postMessage errors
+    }
+
+    // Do not navigate the placeholder window here — LoadingScreen will update the hash when it hears the announcement.
     return deck.id;
   }, []);
 

@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+import LoadingScreen from './components/LoadingScreen';
 
 const root = createRoot(document.getElementById('root')!);
 
@@ -51,6 +52,13 @@ async function waitForBroadcastDeck(key: string, timeoutMs = 1200): Promise<any 
 async function boot() {
   const hash = window.location.hash || '';
 
+  // If we are on the loading route, show the LoadingScreen which listens for deck readiness
+  if (hash.startsWith('#loading')) {
+    const root = createRoot(document.getElementById('root')!);
+    root.render(<LoadingScreen />);
+    return;
+  }
+
   // 1) support inline deckdata in the URL: #deckdata=<base64>
   const mData = hash.match(/deckdata=([^&]+)/);
   if (mData) {
@@ -78,8 +86,7 @@ async function boot() {
     try {
       const decoded = urlSafeBase64Decode(decodeURIComponent(mInvestors[1]));
       if (decoded) {
-        const deck = JSON.parse(decoded);
-        const mod = await import('./components/InvestorsPage');
+  const mod = await import('./components/InvestorsPage');
         const InvestorsPage = mod.default;
         root.render(
           <StrictMode>
