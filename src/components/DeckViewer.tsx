@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useTextTone } from '../hooks/useTextTone';
-import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, FileText, Users } from 'lucide-react';
 import { SlideFrame } from './SlideFrame';
 import type { SlideFormat } from '../constants/slide';
 import type { Deck } from '../../utils/generateDeckJSON';
+import { encodeDeckForUrl } from '../hooks/useGenerateDeck';
 
 interface PPTViewerProps {
   deck?: Deck;
@@ -33,12 +34,6 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   const [preparing, setPreparing] = useState(false);
   const [showScript, setShowScript] = useState(false);
 
-  // Debug: Log what we received
-  console.log('🔍 PPTViewer received deck:', deck);
-  console.log('🔍 Deck type:', typeof deck);
-  console.log('🔍 Deck keys:', deck ? Object.keys(deck) : 'No deck');
-
-  // Safety check - if no deck
   if (!deck) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -81,6 +76,22 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
     }
     setIsEditing(!isEditing);
   };
+
+  const handleMatchInvestors = async () => {
+    if (!deck) return;
+    
+    // Create URL with deck data for investors page
+    const deckData = encodeDeckForUrl(deck as any);
+    const investorsUrl = `${window.location.origin}/#investors=${deckData}`;
+    
+    // Open new tab with proper URL
+    const newTab = window.open(investorsUrl, '_blank');
+    if (!newTab) {
+      alert('Please allow popups to open investor matches in a new tab');
+      return;
+    }
+  };
+
 
   const handleDownload = async () => {
     if (!isProUser) {
@@ -153,22 +164,6 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
 
   const assets = (deck as any)?.meta?.themeAssets as { coverBg?: string; contentBg?: string; defaultText?: 'light'|'dark' } | undefined;
   
-  // Compute and log the effective background chosen for each slide (helps catch missing assets or bad paths)
-  try {
-    const slideBgs: Array<{ idx: number; bg: string | null; useImage: boolean }> = slides.map((s, idx) => {
-      const imageUrl = (s as any).imageUrl || (s as any).image;
-      if (imageUrl) return { idx, bg: String(imageUrl), useImage: true };
-      if (assets) {
-        const bg = idx === 0 ? (assets.coverBg || assets.contentBg) : (assets.contentBg || assets.coverBg);
-        return { idx, bg: bg ?? null, useImage: false };
-      }
-      return { idx, bg: null, useImage: false };
-    });
-    console.debug('🔍 computed slide backgrounds', slideBgs);
-  } catch (e) {
-    console.warn('Failed to compute slide backgrounds for debug', e);
-  }
-
   // Compute the inline background URL for the currently visible slide (null when a foreground image is present)
   const imageUrlForCurrent = (currentSlideData as any)?.imageUrl || (currentSlideData as any)?.image;
   let currentBgUrl: string | null = null;
@@ -211,12 +206,6 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
               <h1 className="text-xl font-semibold text-gray-900">AutoFounder</h1>
             </div>
             <div className="flex items-center space-x-3">
-              {!isProUser && (
-                <div className="flex items-center space-x-2 px-3 py-1.5 bg-yellow-50 rounded-lg border border-yellow-200">
-                  <Eye className="w-4 h-4 text-yellow-600" />
-                  <span className="text-sm font-medium text-yellow-700">Preview Mode</span>
-                </div>
-              )}
                 <button
                   onClick={handleEdit}
                   className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
@@ -233,6 +222,13 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
                 >
                   <FileText className="w-4 h-4" />
                   <span>Script</span>
+                </button>
+                <button
+                  onClick={handleMatchInvestors}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                >
+                  <Users className="w-4 h-4" />
+                  <span>Match with Investors</span>
                 </button>
                 <button
                   onClick={handleDownload}
@@ -570,6 +566,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
           </div>
         </div>
       )}
+
     </div>
   );
 }

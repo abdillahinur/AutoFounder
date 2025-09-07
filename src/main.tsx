@@ -72,7 +72,28 @@ async function boot() {
     }
   }
 
-  // 2) support #deck=<id> with localStorage + BroadcastChannel fallback
+  // 2) support #investors=<base64> for investor matches
+  const mInvestors = hash.match(/investors=([^&]+)/);
+  if (mInvestors) {
+    try {
+      const decoded = urlSafeBase64Decode(decodeURIComponent(mInvestors[1]));
+      if (decoded) {
+        const deck = JSON.parse(decoded);
+        const mod = await import('./components/InvestorsPage');
+        const InvestorsPage = mod.default;
+        root.render(
+          <StrictMode>
+            <InvestorsPage />
+          </StrictMode>
+        );
+        return;
+      }
+    } catch (e) {
+      console.warn('Failed to parse investors deckdata from URL', e);
+    }
+  }
+
+  // 3) support #deck=<id> with localStorage + BroadcastChannel fallback
   const m = hash.match(/deck=([a-z0-9\-]+)/i);
   if (m) {
     const id = m[1];

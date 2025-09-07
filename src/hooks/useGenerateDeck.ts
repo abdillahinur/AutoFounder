@@ -179,6 +179,352 @@ function generateBasicPresentationScript(
   ];
 }
 
+interface InvestorMatch {
+  name: string;
+  type: string;
+  contact: string;
+  reason: string;
+  outreachGuidance: string;
+}
+
+// Function to enhance investor list with found email addresses
+async function enhanceInvestorListWithEmails(): Promise<string> {
+  const geminiKey = localStorage.getItem('gemini_api_key') || import.meta.env?.VITE_GEMINI_API_KEY;
+  
+  // Known email addresses for high-profile investors
+  const knownEmails: Record<string, string> = {
+    "Naval Ravikant": "naval@angel.co",
+    "Elad Gil": "elad@eladgil.com", 
+    "Paul Graham": "pg@ycombinator.com",
+    "Sam Altman": "sam@altman.com",
+    "Jason Calacanis": "jason@calacanis.com",
+    "Brad Feld": "brad@foundrygroup.com",
+    "Mark Suster": "mark@upfront.com",
+    "Guy Kawasaki": "guy@guykawasaki.com",
+    "Josh Kopelman": "josh@firstround.com",
+    "Aileen Lee": "aileen@cowboy.vc",
+    "Kirsten Green": "kirsten@forerunnerventures.com",
+    "Danny Rimer": "danny@indexventures.com",
+    "Seth Levine": "seth@foundrygroup.com",
+    "Ajay Agarwal": "ajay@baincapitalventures.com",
+    "Harry Stebbings": "harry@20vc.com",
+    "Elizabeth Yin": "elizabeth@hustlefund.vc",
+    "Zach Coelius": "zach@coelius.com",
+    "Ryan Hoover": "ryan@producthunt.com",
+    "David Sacks": "david@craftventures.com",
+    "Keith Rabois": "keith@foundersfund.com",
+    "Eric Ries": "eric@longerview.com",
+    "Avichal Garg": "avichal@electriccapital.com",
+    "Dave Morin": "dave@slowventures.com",
+    "Jerry Neumann": "jerry@ganeumann.com",
+    "Travis Jamison": "travis@jamison.com"
+  };
+
+  if (!geminiKey) {
+    return buildEnhancedInvestorList(knownEmails);
+  }
+
+  try {
+    (globalThis as any).GEMINI_API_KEY = geminiKey;
+    const { generateWithGemini } = await import('../lib/ai/gemini');
+    
+    const prompt = `You are a research assistant helping find publicly available email addresses for high-profile investors and VCs.
+
+TASK: For each investor listed below, find their publicly available email address if it exists. Focus on:
+- Official firm email addresses
+- Publicly shared personal emails
+- Contact emails from their websites, LinkedIn, or official profiles
+- Do NOT guess or make up emails
+
+INVESTORS TO RESEARCH:
+Mark Cuban, Scott Belsky, Peter Thiel, Marc Benioff, Paul Buchheit, Alexis Ohanian, Reid Hoffman, Bill Gates, Gary Vaynerchuk, Eric Schmidt, Max Levchin, Sandeep Nailwal, Anupam Mittal, Kevin Hartz, Dylan Field, Bradley Horowitz, Taavet Hinrikus, Ramakant Sharma, Kevin Moore, Nat Friedman, Wayne Chang, Thibaud Elziere, Nitesh Banta, George Burke, David Tisch, Mark Pincus, Guillermo Rauch, Auren Hoffman, Binny Bansal, Arjun Sethi, Kunal Bahl, Rajan Anandan, Justin Kan, Garry Tan, James Sowers, Shane Neman, Dharmesh Shah, Eduardo Ronzano, Chris Sang, Benjamin Ling, Jeremy Yap, Jack Altman, Lee Linden, Immad Akhund, Rohit Bansal, Joanne Wilson, Arash Ferdowsi, Daren Cotter, Ashton Kutcher, Spencer Rascoff, Rob Dobson, Joshua Schachter, Bryan Rosenblatt, Roman Smolevskiy, Brendan Wallace, Daniel Gross, Brad Flora, Vishal Rao, Nat Turner, Sebastien Borget, Vijay Shekhar Sharma, Farzad Nazem
+
+FORMAT: Return ONLY a JSON object with investor names as keys and their email addresses as values. If no email is found, use null.
+
+EXAMPLE:
+{
+  "Mark Cuban": "mark@dallasmavs.com", 
+  "Scott Belsky": null,
+  "Peter Thiel": "peter@foundersfund.com"
+}
+
+IMPORTANT: Only include emails that are publicly available and verifiable. Do not guess or invent email addresses.`;
+
+    const response = await generateWithGemini({ prompt });
+    
+    try {
+      const geminiEmailMap = JSON.parse(response.trim());
+      // Merge known emails with Gemini findings
+      const combinedEmailMap = { ...knownEmails, ...geminiEmailMap };
+      return buildEnhancedInvestorList(combinedEmailMap);
+    } catch (parseError) {
+      console.warn('Failed to parse email enhancement response, using known emails only');
+      return buildEnhancedInvestorList(knownEmails);
+    }
+  } catch (error) {
+    console.warn('Failed to enhance investor list with emails, using known emails only');
+    return buildEnhancedInvestorList(knownEmails);
+  }
+}
+
+function getBaseInvestorList(): string {
+  return `Hesham Zreik | Angel | 
+Edward Lando | Angel | 
+Bashar Hamood | Angel | 
+Kunal Shah | Angel | 
+Naval Ravikant | Angel | 
+Fabrice Grinda | Angel | 
+Mark Cuban | Angel | 
+Scott Belsky | Angel | 
+Elad Gil | Angel | 
+Charlie Songhurst | Angel | 
+Gokul Rajaram | Angel | 
+Balaji Srinivasan | Angel | 
+Nadav Ben‑Chanoch | Angel | 
+Marc Benioff | Angel | 
+Daniel Curran | Angel | 
+Paul Buchheit | Angel | 
+Chris Adelsbach | Angel | 
+Alexis Ohanian | Angel | 
+Scott Banister | Angel | 
+Jon Oringer | Angel | 
+Shervin Pishevar | Angel | 
+Wei Guo | Angel | 
+Justin Mateen | Angel | 
+Lachy Groom | Angel | 
+Kevin Mahaffey | Angel | 
+Peter Thiel | Angel | 
+Esther Dyson | Angel | 
+Sam Altman | Angel | 
+Louis Beryl | Angel | 
+Tom Williams | Angel | 
+Sahin Boydas | Angel | 
+Xavier Niel | Angel | 
+Kevin Lin | Angel | 
+Tim Draper | Angel/VC | 
+Ron Conway | Angel | 
+Cyan Banister | Angel | 
+Max Levchin | Angel | 
+Sandeep Nailwal | Angel | 
+Anupam Mittal | Angel | 
+Kevin Hartz | Angel/VC | 
+Clark Landry | Angel | 
+Simon Murdoch | Angel | 
+Dylan Field | Angel | 
+Bradley Horowitz | Angel | 
+Taavet Hinrikus | Angel | 
+Reid Hoffman | Angel/VC | 
+Ramakant Sharma | Angel | 
+Kevin Moore | Angel | 
+Nat Friedman | Angel | 
+Wayne Chang | Angel | 
+Thibaud Elziere | Angel | 
+Nitesh Banta | Angel | 
+George Burke | Angel | 
+David Tisch | Angel | 
+Bill Gates | Angel | 
+Mark Pincus | Angel | 
+Guillermo Rauch | Angel | 
+Auren Hoffman | Angel | 
+Binny Bansal | Angel | 
+Arjun Sethi | Angel | 
+Kunal Bahl | Angel | 
+Rajan Anandan | Angel | 
+Justin Kan | Angel | 
+Garry Tan | Angel/VC | 
+James Sowers | Angel | 
+Shane Neman | Angel | 
+Dharmesh Shah | Angel | 
+Gary Vaynerchuk | Angel | 
+Eduardo Ronzano | Angel | 
+Chris Sang | Angel | 
+Benjamin Ling | Angel | 
+Jeremy Yap | Angel | 
+Jack Altman | Angel | 
+Lee Linden | Angel | 
+Immad Akhund | Angel | 
+Rohit Bansal | Angel | 
+Joanne Wilson | Angel | 
+Arash Ferdowsi | Angel | 
+Daren Cotter | Angel | 
+Ashton Kutcher | Angel | 
+Spencer Rascoff | Angel | 
+Rob Dobson | Angel | 
+Joshua Schachter | Angel | 
+Bryan Rosenblatt | Angel | 
+Roman Smolevskiy | Angel | 
+Eric Schmidt | Angel | 
+Brendan Wallace | Angel/VC | 
+Daniel Gross | Angel | 
+Brad Flora | Angel | 
+Vishal Rao | Angel | 
+Nat Turner | Angel | 
+Sebastien Borget | Angel | 
+Vijay Shekhar Sharma | Angel | 
+Keith Rabois | Angel/VC | 
+Farzad Nazem | Angel | 
+Eric Ries | Angel | 
+Avichal Garg | Angel | 
+Dave Morin | Angel | 
+Paul Forster | Angel | 
+Harry Stebbings | VC/Angel | 
+Jerry Neumann | Angel/VC | 
+Travis Jamison | Angel | 
+Elizabeth Yin | Angel/VC | 
+Zach Coelius | Angel/VC | 
+Ryan Hoover | Angel | 
+David Sacks | Angel/VC | 
+Kirsten Green | VC | 
+Danny Rimer | VC | 
+Aileen Lee | VC | 
+Jason Calacanis | Angel | 
+Seth Levine | VC | 
+Ajay Agarwal | VC | 
+Paul Graham | Angel/Accelerator | 
+Brad Feld | VC | 
+Mark Suster | VC | 
+Guy Kawasaki | Angel/Advisor | 
+Josh Kopelman | VC | 
+Rajesh Mane | VC (100Unicorns) | rajesh@100unicorns.in
+Alexander Kudlich | VC (468 Capital) | alexander@468cap.com
+Danielle Strachman | VC (1517 Fund) | dstrachman@1517fund.com
+Alex Iskold | VC (2048 Ventures) | alex@2048.vc
+Pandu Sjahrir | VC (AC Ventures) | pandu@danantaraindonesia.com
+Mendel Chuang | VC (Acquired Wisdom Fund) | mendel@awf.vc
+Joshua B. Siegel | VC (Acronym VC) | joshua@acronymvc.com
+Mohammed Amdani | VC (Adapt Ventures) | mo@adaptvc.co
+Nikil Viswanathan | VC (Alchemy) | nikil.viswanathan@alchemyapi.io
+Kevin Ryan | VC (AlleyCorp) | kevin.ryan@alleycorp.com
+Matt Wilson | VC (Allied Venture Partners) | matt@allied.vc
+Henry Palmer | VC (Amplifier Lab) | hp@amplifierlab.io
+Blake Kim | VC (Andreessen Horowitz) | bkim@a16z.com
+Nico Berardi | VC (ANIMO Ventures) | nico@agpmiami.com
+Andrea Hajdu‑Howe | VC (Antler) | andrea@antler.co
+Rohit Sipahimalani | VC (Athera Venture Partners) | contact@athera.vc`;
+}
+
+function buildEnhancedInvestorList(emailMap: Record<string, string | null>): string {
+  const baseList = getBaseInvestorList();
+  const lines = baseList.split('\n');
+  
+  const enhancedLines = lines.map(line => {
+    const [name, type, contact] = line.split(' | ');
+    if (!contact || contact.trim() === '') {
+      const email = emailMap[name?.trim()];
+      if (email) {
+        return `${name} | ${type} | ${email}`;
+      }
+    }
+    return line;
+  });
+  
+  return enhancedLines.join('\n');
+}
+
+async function findMatchingInvestors(
+  startupName: string,
+  enhancedInput: Record<string, string>
+): Promise<InvestorMatch[]> {
+  const geminiKey = localStorage.getItem('gemini_api_key') || import.meta.env?.VITE_GEMINI_API_KEY;
+  
+  if (!geminiKey) {
+    return [];
+  }
+
+  try {
+    (globalThis as any).GEMINI_API_KEY = geminiKey;
+    
+    const { generateWithGemini } = await import('../lib/ai/gemini');
+    
+    // Get enhanced investor list with emails
+    const investorList = await enhanceInvestorListWithEmails();
+
+    const prompt = `You are an expert startup advisor helping find the best investor matches for a startup.
+
+STARTUP DETAILS:
+Company: ${startupName}
+Problem: ${enhancedInput.problem || 'Not specified'}
+Solution: ${enhancedInput.solution || 'Not specified'}
+Market: ${enhancedInput.market || 'Not specified'}
+Business Model: ${enhancedInput.model || 'Not specified'}
+Traction: ${enhancedInput.traction || 'Not specified'}
+Team: ${enhancedInput.team || 'Not specified'}
+
+INVESTOR LIST:
+${investorList}
+
+TASK: Find the TOP 3 best investor matches from the list above and create HIGHLY PERSONALIZED outreach messages.
+
+CRITICAL: Each message must be UNIQUE and tailored specifically to that investor. NO generic templates or one-size-fits-all approaches.
+
+For each match, provide:
+1. Why they're a good fit (based on their investment focus, portfolio, or expertise)
+2. Brief outreach guidance (what to mention when reaching out)
+
+Outreach Guidelines:
+- Focus on EMAIL outreach (most investors have DMs closed)
+- Use the EXACT startup information provided above - NO placeholders like "[Startup Name]", "[Market]", "[Your startup]", etc.
+- Be VERY specific about why they'd be interested - reference their actual investments, portfolio companies, or recent activities
+- Mention specific details about their background or investment thesis
+- Connect your startup to their actual interests and portfolio
+- Use the actual startup name, problem, solution, market, and details provided above
+- Provide specific talking points for email outreach
+- NEVER use generic placeholders - always use the real startup information
+
+Return ONLY a JSON array with this exact format:
+[
+  {
+    "name": "Investor Name",
+    "type": "Angel/VC",
+    "contact": "@handle or email",
+    "reason": "Why they're a good match (2-3 sentences)",
+    "outreachGuidance": "Brief guidance on what to mention when reaching out (1-2 sentences)"
+  }
+]`;
+
+    const response = await generateWithGemini({ prompt });
+    
+    try {
+      let jsonResponse = response.trim();
+      const jsonMatch = jsonResponse.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        jsonResponse = jsonMatch[0];
+      }
+      
+      const matches = JSON.parse(jsonResponse);
+      return matches;
+    } catch (parseError) {
+      return [];
+    }
+  } catch (error) {
+    return [];
+  }
+}
+
+// Decode URL-safe base64 -> JSON (UTF-8 safe)
+export function decodeDeckFromUrl(encoded: string): Deck {
+  // Restore URL-safe base64
+  const b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+  
+  // Decode base64 to binary string
+  const binary = atob(padded);
+  
+  // Convert binary string to bytes
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  
+  // Decode UTF-8
+  const decoder = new TextDecoder();
+  const json = decoder.decode(bytes);
+  
+  return JSON.parse(json);
+}
+
+export { findMatchingInvestors };
+
 export type SlideInput = {
   heading: string;
   bullets?: string[];
