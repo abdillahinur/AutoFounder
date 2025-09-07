@@ -606,6 +606,9 @@ export function buildDeterministicDeck(payload: FormPayload): Deck {
     meta: {
       version: 1,
       source: 'autofounder',
+      // demo defaults
+      isPaid: false,
+      watermarkText: 'AUTOFOUNDER — DEMO',
     },
   };
   return deck;

@@ -9,3 +9,11 @@
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 }
+
+/* Presentation mode helpers */
+.presenting .app-chrome,
+.presenting .sidebar,
+.presenting .toolbar { display: none !important; }
+
+/* Prevent scroll when presenting */
+body:has(.presenting) { overflow: hidden; }

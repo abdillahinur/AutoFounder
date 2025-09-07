@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useTextTone } from '../hooks/useTextTone';
 import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, FileText, Users } from 'lucide-react';
 import { SlideFrame } from './SlideFrame';
@@ -9,6 +9,7 @@ import { encodeDeckForUrl } from '../hooks/useGenerateDeck';
 interface PPTViewerProps {
   deck?: Deck;
   isProUser?: boolean;
+  initialPresent?: boolean;
 }
 
 async function fetchImageAsDataUrl(url: string): Promise<string | null> {
@@ -27,12 +28,16 @@ async function fetchImageAsDataUrl(url: string): Promise<string | null> {
   }
 }
 
-export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
+export default function PPTViewer({ deck, isProUser = false, initialPresent = false }: PPTViewerProps) {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isEditing, setIsEditing] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [preparing, setPreparing] = useState(false);
   const [showScript, setShowScript] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, enter, exit } = useFullscreen<HTMLDivElement>();
+  const [presenting, setPresenting] = useState(false);
+  const [blackout, setBlackout] = useState(false);
 
   if (!deck) {
     return (
@@ -61,6 +66,10 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   const slides = deck.slides || [];
   const currentSlideData = slides[currentSlide];
 
+  // Allow forcing free downloads via Vite env: VITE_FORCE_FREE_DOWNLOAD=true
+  const FORCE_FREE = (import.meta as any).env?.VITE_FORCE_FREE_DOWNLOAD === 'true';
+  const isPaid = FORCE_FREE ? true : !!(deck as any)?.meta?.isPaid;
+
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
@@ -68,6 +77,43 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
   };
+
+  const goTo = (i: number) => setCurrentSlide(Math.max(0, Math.min(i, slides.length - 1)));
+  const startPresent = async () => {
+    setPresenting(true);
+    try {
+      // If the element doesn't support the Fullscreen API, open a new window as a presenter.
+      if (!('requestFullscreen' in (stageRef.current || {}))) {
+        const w = window.open('about:blank', '_blank', 'noopener');
+        if (w) {
+          const id = (deck as any)?.id;
+          try { w.location.href = `${location.origin}/#deck=${encodeURIComponent(String(id))}&present=1`; } catch (e) { /* ignore */ }
+          return;
+        }
+      }
+      await enter(stageRef.current);
+    } catch {}
+    // if fullscreen fails (blocked), we still switch to presenting layout
+  };
+  const stopPresent = async () => { setPresenting(false); setBlackout(false); try { await exit(); } catch {} };
+
+  useSlideHotkeys(presenting || isFullscreen, {
+    next: () => goTo((currentSlide + 1) % slides.length),
+    prev: () => goTo((currentSlide - 1 + slides.length) % slides.length),
+    first: () => goTo(0),
+    last: () => goTo(slides.length - 1),
+    exit: stopPresent,
+    toggleBlackout: () => setBlackout(b => !b),
+  });
+
+  // if we were opened with initialPresent (via hash), auto-start presenting
+  useEffect(() => {
+    if (initialPresent) {
+      // kick off the present flow after mount
+      // eslint-disable-next-line @typescript-eslint/no-floating-promises
+      startPresent();
+    }
+  }, [initialPresent]);
 
   const handleEdit = () => {
     if (!isProUser) {
@@ -112,9 +158,13 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
         pres.layout = fmt === 'w4x3' ? 'LAYOUT_4x3' : 'LAYOUT_16x9';
       } catch (e) { /* ignore */ }
 
+  // slide dimensions not required when not watermarking
+
       const assets = (deck as any)?.meta?.themeAssets as { coverBg?: string; contentBg?: string } | undefined;
       const textTone = (deck as any)?.meta?.textTone || (assets && (assets as any).defaultText) || 'dark';
       const textColor = textTone === 'light' ? 'FFFFFF' : '000000';
+
+  // isPaidDeck not required when not watermarking; use `isPaid` directly where needed
 
       for (let idx = 0; idx < deck.slides.length; idx++) {
         const s = deck.slides[idx] as any;
@@ -131,6 +181,8 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
           // fallback solid white background
           try { slide.background = { color: 'FFFFFF' }; } catch (e) { /* ignore */ }
         }
+
+  // (no watermark added for exported slides)
 
         const heading = s.title ?? s.heading ?? '';
         if (heading) {
@@ -149,6 +201,8 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
             try { slide.addImage({ data: dataUrl, x: 6.0, y: 1.0, w: 3.0 }); } catch (e) { console.warn('pptx addImage failed', e); }
           }
         }
+
+  // (watermarking handled earlier with tiled watermark)
       }
 
       const title = (deck as any)?.metadata?.startupName || deck.slug || deck.id;
@@ -194,9 +248,10 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
   const mode: 'fit' | 'actual' = (deck as any)?.meta?.viewerMode ?? 'fit';
 
   return (
+    <div className={presenting ? 'presenting' : ''}>
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white shadow-sm border-b app-chrome">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
@@ -208,11 +263,8 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
             <div className="flex items-center space-x-3">
                 <button
                   onClick={handleEdit}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                    isProUser ? 'bg-blue-600 text-white hover:bg-blue-700' : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700`}
                 >
-                  {!isProUser && <Lock className="w-4 h-4 text-current" />}
                   <Edit3 className="w-4 h-4 text-current" />
                   <span>Edit</span>
                 </button>
@@ -257,7 +309,7 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Slide Thumbnails */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 sidebar">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Slides</h3>
             <div className="space-y-3">
               {slides.map((slideItem, index) => (
@@ -284,102 +336,117 @@ export default function PPTViewer({ deck, isProUser = false }: PPTViewerProps) {
           {/* Main Slide Display */}
           <div className="lg:col-span-3">
             <div className="relative">
-              {/* Slide Container */}
-              <SlideFrame format={slideFormat} mode={mode} className="bg-white rounded-xl shadow-lg border border-gray-200">
-                {/* Watermarks for free users */}
-                {!isProUser && (
-                  <>
-                    <div className="absolute inset-0 pointer-events-none z-10">
-                      <div className="absolute top-4 left-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
-                        PREVIEW
-                      </div>
-                      <div className="absolute top-4 right-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
-                        AUTOFOUNDER
-                      </div>
-                      <div className="absolute bottom-4 left-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
-                        UPGRADE TO REMOVE
-                      </div>
-                      <div className="absolute bottom-4 right-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
-                        WATERMARKS
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Slide Content - themed rendering: apply background when no slide image present */}
-                <div className="h-full p-12 flex flex-col justify-center">
-                  {currentSlideData && (
-                    <article className="h-full w-full rounded-2xl p-6 shadow border relative overflow-hidden">
-                      {/* background layer (only when no foreground image) */}
-                      {!imageUrlForCurrent && currentBgUrl && (
-                        <div className="absolute inset-0">
-                          <div
-                            style={{ backgroundImage: `url(${currentBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-                            className="absolute inset-0"
-                          />
-                          {/* scrim: stronger on the left where text sits */}
-                          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.6)_0%,rgba(0,0,0,.2)_45%,rgba(0,0,0,0)_70%)] pointer-events-none" />
+              {/* Slide Container - stageRef enables fullscreen presentation */}
+              <div ref={stageRef} className={presenting ? 'fixed inset-0 z-50 bg-black flex items-center justify-center' : ''}>
+                <SlideFrame
+                  format={slideFormat}
+                  mode={presenting ? 'fit' : mode}
+                  className={`mx-auto bg-white rounded-xl shadow-lg border border-gray-200 ${presenting ? 'max-w-[90vw] max-h-[90vh]' : ''}`}
+                >
+                  {/* Watermarks for free users */}
+                  {!isProUser && (
+                    <>
+                      <div className="absolute inset-0 pointer-events-none z-10">
+                        <div className="absolute top-4 left-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
+                          PREVIEW
                         </div>
-                      )}
-
-                      <div className={`relative p-6 ${toneClass} drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]`} style={{ color: toneHex }}>
-                      {/* Cover slide: centered layout */}
-                      {currentSlide === 0 ? (
-                        <div className="h-full w-full flex flex-col items-center justify-center text-center px-8">
-                          {/* If an explicit image exists, show it above the title */}
-                          {((currentSlideData as any).imageUrl || (currentSlideData as any).image) && (
-                            <div className="mb-6">
-                              <img
-                                src={(currentSlideData as any).imageUrl || (currentSlideData as any).image}
-                                alt={(currentSlideData as any).title || ''}
-                                className="max-h-36 object-contain rounded mx-auto"
-                              />
-                            </div>
-                          )}
-
-                          <h1 className={`text-5xl font-extrabold leading-tight mb-4 ${toneClass}`}>
-                            {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
-                          </h1>
-                          <p className={`text-xl max-w-2xl ${toneClass} opacity-90`}>
-                            {Array.isArray((currentSlideData as any).bullets) ? ((currentSlideData as any).bullets[0] || '') : ''}
-                          </p>
+                        <div className="absolute top-4 right-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
+                          AUTOFOUNDER
                         </div>
-                      ) : (
-                        <div>
-                          {/* If a slide image is provided, show it and don't treat it as background */}
-                          {((currentSlideData as any).imageUrl || (currentSlideData as any).image) ? (
-                            <div className="mb-6 text-center">
-                              <img
-                                src={(currentSlideData as any).imageUrl || (currentSlideData as any).image}
-                                alt={(currentSlideData as any).title || ''}
-                                className="max-h-40 object-contain rounded mx-auto"
-                              />
-                            </div>
-                          ) : null}
-
-                          {/* Title uses the theme text color */}
-                          <h1 className={`text-4xl font-bold mb-6 ${toneClass}`}>
-                            {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
-                          </h1>
-
-                          {/* Bullets - use themed text color */}
-                          {Array.isArray((currentSlideData as any).bullets) && (
-                            <ul className="space-y-4 list-disc marker:text-current">
-                              {(currentSlideData as any).bullets.map((bullet: string, idx: number) => (
-                                <li key={idx} className="flex items-start">
-                                  <div className="w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0 bg-current" />
-                                  <span className="text-lg">{bullet}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+                        <div className="absolute bottom-4 left-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
+                          UPGRADE TO REMOVE
                         </div>
-                      )}
+                        <div className="absolute bottom-4 right-4 bg-gray-900 bg-opacity-20 text-white px-2 py-1 rounded text-sm font-medium">
+                          WATERMARKS
+                        </div>
                       </div>
-                    </article>
+                    </>
                   )}
-                </div>
-              </SlideFrame>
+
+                  {/* Slide Content - themed rendering: apply background when no slide image present */}
+                  <div className="h-full p-12 flex flex-col justify-center">
+                    {currentSlideData && (
+                      <article className="h-full w-full rounded-2xl p-6 shadow border relative overflow-hidden">
+                        {/* background layer (only when no foreground image) */}
+                        {!imageUrlForCurrent && currentBgUrl && (
+                          <div className="absolute inset-0">
+                            <div
+                              style={{ backgroundImage: `url(${currentBgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                              className="absolute inset-0"
+                            />
+                            {/* scrim: stronger on the left where text sits */}
+                            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(0,0,0,.6)_0%,rgba(0,0,0,.2)_45%,rgba(0,0,0,0)_70%)] pointer-events-none" />
+                          </div>
+                        )}
+
+                        <div className={`relative p-6 ${toneClass} drop-shadow-[0_1px_1px_rgba(0,0,0,0.6)]`} style={{ color: toneHex }}>
+                        {/* Cover slide: centered layout */}
+                        {currentSlide === 0 ? (
+                          <div className="h-full w-full flex flex-col items-center justify-center text-center px-8">
+                            {/* If an explicit image exists, show it above the title */}
+                            {((currentSlideData as any).imageUrl || (currentSlideData as any).image) && (
+                              <div className="mb-6">
+                                <img
+                                  src={(currentSlideData as any).imageUrl || (currentSlideData as any).image}
+                                  alt={(currentSlideData as any).title || ''}
+                                  className="max-h-36 object-contain rounded mx-auto"
+                                />
+                              </div>
+                            )}
+
+                            <h1 className={`text-5xl font-extrabold leading-tight mb-4 ${toneClass}`}>
+                              {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
+                            </h1>
+                            <p className={`text-xl max-w-2xl ${toneClass} opacity-90`}>
+                              {Array.isArray((currentSlideData as any).bullets) ? ((currentSlideData as any).bullets[0] || '') : ''}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            {/* If a slide image is provided, show it and don't treat it as background */}
+                            {((currentSlideData as any).imageUrl || (currentSlideData as any).image) ? (
+                              <div className="mb-6 text-center">
+                                <img
+                                  src={(currentSlideData as any).imageUrl || (currentSlideData as any).image}
+                                  alt={(currentSlideData as any).title || ''}
+                                  className="max-h-40 object-contain rounded mx-auto"
+                                />
+                              </div>
+                            ) : null}
+
+                            {/* Title uses the theme text color */}
+                            <h1 className={`text-4xl font-bold mb-6 ${toneClass}`}>
+                              {(currentSlideData as any).title || (currentSlideData as any).heading || `Slide ${currentSlide + 1}`}
+                            </h1>
+
+                            {/* Bullets - use themed text color */}
+                            {Array.isArray((currentSlideData as any).bullets) && (
+                              <ul className="space-y-4 list-disc marker:text-current">
+                                {(currentSlideData as any).bullets.map((bullet: string, idx: number) => (
+                                  <li key={idx} className="flex items-start">
+                                    <div className="w-2 h-2 rounded-full mt-2 mr-4 flex-shrink-0 bg-current" />
+                                    <span className="text-lg">{bullet}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        )}
+                        </div>
+                      </article>
+                    )}
+                  </div>
+
+                  {blackout && <div className="absolute inset-0 bg-black" />}
+                </SlideFrame>
+
+                {presenting && (
+                  <div className="absolute top-3 right-4 flex items-center gap-2 text-white/85">
+                    <span className="text-xs hidden md:block">Esc to exit • ←/→ to navigate • B to black</span>
+                    <button onClick={stopPresent} className="px-3 py-1 rounded bg-white/10 hover:bg-white/20">Exit</button>
+                  </div>
+                )}
+              </div>
 
               {/* Navigation Controls */}
               <div className="flex justify-between items-center mt-4">

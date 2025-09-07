@@ -31,6 +31,8 @@ export type Deck = {
 		theme?: ThemeKey;
 		themeAssets?: ThemeConfig;
 		textTone?: 'light' | 'dark';
+		isPaid?: boolean;
+		watermarkText?: string;
 	};
 };
 
@@ -83,6 +85,14 @@ export function generateDeckJSON(
 		if (opts.themeAssets) deck.meta.themeAssets = opts.themeAssets;
 		// Default deck-level text tone from opts or themeAssets; do not modify slide-level textTone here.
 		deck.meta.textTone = opts.textTone ?? opts.themeAssets?.defaultText ?? (deck.meta.textTone as any) ?? 'dark';
+		// Payment / watermark defaults for demo decks
+		deck.meta.isPaid = (opts as any).isPaid ?? (deck.meta.isPaid as any) ?? false;
+		deck.meta.watermarkText = (opts as any).watermarkText ?? (deck.meta.watermarkText as any) ?? 'AUTOFOUNDER — DEMO';
+	} else {
+		// ensure defaults even when no opts provided
+		deck.meta = deck.meta || {};
+		deck.meta.isPaid = (deck.meta.isPaid as any) ?? false;
+		deck.meta.watermarkText = (deck.meta.watermarkText as any) ?? 'AUTOFOUNDER — DEMO';
 	}
 
 	return deck;

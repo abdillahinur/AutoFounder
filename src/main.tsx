@@ -62,7 +62,7 @@ async function boot() {
         const DeckViewer = mod.default;
         root.render(
           <StrictMode>
-            <DeckViewer deck={deck} />
+            <DeckViewer deck={deck} initialPresent={/present=1/.test(hash)} />
           </StrictMode>
         );
         return;
@@ -105,7 +105,7 @@ async function boot() {
         const DeckViewer = mod.default;
         root.render(
           <StrictMode>
-            <DeckViewer deck={deck} />
+            <DeckViewer deck={deck} initialPresent={/present=1/.test(hash)} />
           </StrictMode>
         );
         return;
@@ -123,7 +123,7 @@ async function boot() {
         const DeckViewer = mod.default;
         root.render(
           <StrictMode>
-            <DeckViewer deck={deck} />
+            <DeckViewer deck={deck} initialPresent={/present=1/.test(hash)} />
           </StrictMode>
         );
         return;

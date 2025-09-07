@@ -44,6 +44,13 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
   const fmt: SlideFormat = (userInput?.meta && (userInput.meta as any).slideFormat) || 'w16x9';
   applyLayout(pptx, fmt);
 
+  // Dimensions (inches) for tiling; pptxgenjs exposes getLayout() in v3+,
+  // otherwise use known sizes: 16:9 => 10 x 5.625, 4:3 => 10 x 7.5
+  const size = fmt === 'w4x3' ? { w: 10, h: 7.5 } : { w: 10, h: 5.625 };
+
+  const isPaid = (userInput?.meta && (userInput.meta as any).isPaid) ?? false;
+  const watermarkText = (userInput?.meta && (userInput.meta as any).watermarkText) || 'AUTOFOUNDER — DEMO';
+
   // Enhance content with AI if API key is available
   let enhancedInput: Record<string, any> = userInput;
   let slideHeaders: Record<string, string> = {};
@@ -81,6 +88,7 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
   } else {
     try { coverSlide.background = { color: 'FFFFFF' }; } catch (e) {}
   }
+  // (no watermark for exported cover)
   // Defensive: check for field existence and use correct keys
   const coverStartupName = cover.fields.startupName;
   const coverOneLiner = cover.fields.oneLiner;
@@ -159,6 +167,8 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
       }
     }
 
+  // (no watermark for exported slides)
+
   // Determine slide-level tone: try userInput.slides[index].textTone, else deck-level meta/theme
   const slideIndex = slideOrder.indexOf(slideKey);
   const slideObj = (userInput?.slides && userInput.slides[slideIndex]) || null;
@@ -188,6 +198,8 @@ export async function generatePitchDeckPPTX(userInput: Record<string, any>, outp
         x: 1, y: 1.5, w: textWidth, h: 4 // Adjust width based on image presence
       });
     });
+
+  // (watermarking handled above)
   }
 
   // Download the file in the browser
