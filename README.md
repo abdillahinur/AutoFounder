@@ -22,218 +22,107 @@ Visit [AutoFounder](https://autofounder.com) to create your pitch deck in 60 sec
 ## Tech Stack
 
 AutoFounder is built with a modern, production-ready stack:
+# AutoFounder
 
-- **React** & **TypeScript**: For building robust, type-safe user interfaces.
-- **Vite**: Fast development server and build tool for React projects.
-- **TailwindCSS**: Utility-first CSS framework for rapid UI development.
-- **pptxgenjs**: PowerPoint (.pptx) export of pitch decks, fully in-browser.
-- **@google/generative-ai**: Gemini AI integration for content enhancement.
-- **pixabay-api**: Smart image search and integration for relevant visuals.
-- **framer-motion**: Animations and transitions for UI components.
-- **lucide-react**: Icon library for modern React apps.
-- **clsx**: Utility for conditionally joining classNames.
-- **uuid**: For generating unique project and tracking IDs.
+AutoFounder is a client-first, browser-based app that generates investor-ready pitch decks in the browser. The app focuses on speed, privacy, and a smooth demo flow — generation, preview, and PPTX export are all handled client-side.
 
-### (Legacy/Optional)
-- **Zod**: TypeScript-first schema validation for form and API data.
-- **Stripe**: Payment processing for unlocking premium features.
-- **Resend**: Transactional email delivery for investor outreach.
-- **html2pdf.js**: Client-side PDF export of pitch decks.
+Key ideas:
+- All generation runs in the user's browser (no backend required for the demo flow).
+- The generator can optionally enhance content using Gemini (lazy-loaded).
+- Viewer and exporter try to keep on-screen appearance and exported PPTX visually consistent.
 
-The app is designed for hackathon speed: local/in-memory storage, no backend, and all templates are custom Tailwind layouts. All images for slide backgrounds are stored in `/public/images/` and can be easily swapped for different deck themes.
+## Live / Demo
+This repo contains the demo app used during development. The dev server runs with Vite:
 
-## 🎯 Form Fields
-
-The multi-step form collects essential startup information:
-
-### Required Fields
-- **Startup Name** - What's your startup called?
-- **One-Line Pitch** - Describe your startup in one sentence
-- **Problem** - What problem are you solving?
-- **Solution** - How do you solve it?
-- **Target Customer** - Who is this for?
-- **Traction** - Any traction yet? (metrics or n/a)
-- **Funding Ask** - What are you raising & what for?
-
-### Optional Fields
-- **Business Model** - How will you make money?
-- **Market Size** - What's the market size?
-- **Competition** - Who are competitors & what's your edge?
-- **Team** - Who's on your team?
-- **Roadmap** - What's your vision or next milestones?
-- **Contact** - How can investors reach you?
-
-## 🖼️ Smart Image Integration
-
-AutoFounder intelligently adds relevant images to your pitch deck slides using the Pixabay API:
-
-- **AI-Generated Search Queries**: Gemini AI creates smart search terms based on your startup content
-- **Relevance Filtering**: Only adds images that actually fit the slide topic and content
-- **Automatic Layout**: Images are positioned on the right side, with text automatically adjusting width
-- **Fallback Graceful**: If no relevant images are found, slides work perfectly without them
-- **High Quality**: Images are sourced from Pixabay's business category with minimum 800px width
-
-### Image Categories by Slide Type:
-- **Problem**: Business challenges, pain points, customer frustrations
-- **Solution**: Innovation, technology, problem-solving
-- **Market**: Analysis charts, market research, trends
-- **Business Model**: Strategy, revenue, business planning
-- **Traction**: Growth charts, success metrics, achievements
-- **Team**: Professional meetings, collaboration, startup teams
-- **Ask**: Investment, funding, handshakes, business deals
-
-## Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
-- [Pixabay API Key](https://pixabay.com/api/docs/) (free, 5,000 requests/month)
-
-### Installation
-
-1. Clone the repository:
-   ```sh
-   git clone <repo-url>
-   cd AutoFounder
-   ```
-2. Install dependencies:
-   ```sh
-   npm install
-   # or
-   yarn install
-   ```
-
-### Environment Setup
-
-1. Copy the environment template:
-   ```sh
-   cp env.example .env
-   ```
-
-2. Add your API keys to `.env`:
-   ```env
-   # Gemini AI API Key (for content enhancement)
-   VITE_GEMINI_API_KEY=your_gemini_api_key_here
-   
-   # Pixabay API Key (for relevant images)
-   VITE_PIXABAY_API_KEY=your_pixabay_api_key_here
-   ```
-
-### Running the App
-
-To start the development server:
-```sh
+```bash
 npm run dev
-# or
-yarn dev
-```
-The app will be available at [http://localhost:5173](http://localhost:5173) by default.
-
-To build for production:
-```sh
-npm run build
-# or
-yarn build
 ```
 
-To preview the production build:
-```sh
-npm run preview
-# or
-yarn preview
+## Tech stack
+- React + TypeScript
+- Vite (dev server + build)
+- TailwindCSS for styling
+- pptxgenjs for PPTX export
+- @google/generative-ai (optional enhancement)
+- pixabay-api for optional images
+- framer-motion, lucide-react, clsx, uuid
+
+## Quick start
+
+1. Install dependencies
+
+```bash
+npm install
 ```
 
-### Linting
+2. Add environment variables (optional)
 
-To run ESLint:
-```sh
-npm run lint
-# or
-yarn lint
-```
+Create `.env` with keys such as `VITE_GEMINI_API_KEY` and `VITE_PIXABAY_API_KEY` when you want AI/image features enabled.
 
-## 🔄 How It Works
- - Client-first demo flow: the intake modal delegates deck creation to a client hook (`src/hooks/useGenerateDeck.ts`). That hook opens a placeholder window synchronously, optionally enhances the form payload with Gemini (if available), builds a deterministic deck JSON, persists it to localStorage (or encodes it in the URL when storage is blocked), broadcasts it to other tabs, and navigates the placeholder to the viewer.
+3. Run the dev server
 
- - Viewer entry points supported:
-    - `/#deck=<id>` — viewer reads `localStorage.getItem('deck:<id>')` and falls back to listening on `BroadcastChannel('deck:<id>')` for ~1200ms if the deck isn't in storage yet.
-    - `/#deckdata=<base64>` — inline, URL-safe base64 encoded deck JSON (used when localStorage writes are blocked).
-
- - `src/components/DeckViewer.tsx` renders the deck on-screen (cover, slides, optional images, bullets) and provides a Download button that dynamically imports `pptxgenjs` and creates a `.pptx` in-browser. The exporter prefers readable black/white text (no semi-opaque overlay boxes) so exported slides remain editable.
-
- - `utils/generateDeckJSON.ts` contains a deterministic deck generator used for fast demos (no LLM required). Gemini enhancement is optional and lazily loaded.
-
-### Quick demo (no backend)
-
-1. Start the dev server:
-
-```sh
+```bash
 npm run dev
-# or
-yarn dev
 ```
 
-2. Click "Generate Your Deck" to open the multi-step form (`src/components/DeckFormModal.tsx`).
+Open http://localhost:5173
 
-3. Submit the form — the modal opens a small placeholder window synchronously and calls `useGenerateDeck` which:
-    - optionally enhances text with Gemini (lazy imported),
-    - builds a deterministic deck JSON,
-    - tries to persist it to `localStorage` under `deck:<id>` (falls back to encoding it into the URL),
-    - broadcasts the deck on `BroadcastChannel('deck:<id>')` and navigates the placeholder to `/#deck=<id>` or `/#deckdata=<base64>`.
+## How the demo flow works (current wiring)
 
-4. `src/main.tsx` reads the hash on load, reads the deck from `localStorage` or `#deckdata`, and mounts `<DeckViewer deck={deck} />` if present; otherwise the regular app mounts.
+- The intake modal (`src/components/DeckFormModal.tsx`) opens a small placeholder tab on submit. It opens `/#loading` so the new tab shows a friendly loading UI instead of a blank page.
+- The generator hook (`src/hooks/useGenerateDeck.ts`) does the heavy lifting client-side:
+   - Enhances content (optional) via Gemini (lazy import). It posts status updates to the placeholder window (`DECK_STATUS` messages such as "Enhancing content…", "Generating slides…", "Preparing viewer…").
+   - Builds a deterministic `Deck` JSON object.
+   - Persists the deck to `localStorage` under `deck:<id>` when possible and writes `deck:last` for fallback polling.
+   - Broadcasts the deck via `BroadcastChannel('deck:<id>')` and also sends a concise announcement on `BroadcastChannel('deck:announce')` with { id, mode, payload? }.
+   - Posts a `{ type: 'DECK_READY', id, mode, payload? }` message to the placeholder window (same-origin), but does not navigate it — the loading screen handles navigation.
 
-This flow requires no server and is designed for fast demos and hackathon pitching.
+- The placeholder tab shows `LoadingScreen` (`src/components/LoadingScreen.tsx`). It:
+   - Listens for `BroadcastChannel('deck:announce')` and window `message` events for `DECK_READY` and `DECK_STATUS`.
+   - Polls `localStorage.getItem('deck:last')` every 500ms (up to ~10s) as a fallback.
+   - When the deck id (or inline payload) arrives, it updates `location.hash` to `#deck=<id>` or `#deckdata=<payload>` and reloads the page so `src/main.tsx` runs its boot logic and mounts the `DeckViewer`.
 
-## 🎨 UI/UX Features
+- `src/main.tsx` boot logic supports the following entry points:
+   - `#loading` — renders `LoadingScreen` (used while generation is in progress).
+   - `#deckdata=<base64>` — inline deck JSON (used if localStorage writes are blocked).
+   - `#deck=<id>` — viewer reads `localStorage.getItem('deck:<id>')` or waits briefly on `BroadcastChannel('deck:<id>')`.
 
-- **Linear/Notion Aesthetic** - Clean, modern design with Inter font and blue accent color
-- **Smooth Animations** - Framer Motion transitions between steps and modals
-- **Responsive Design** - Optimized for desktop and mobile devices
-- **Accessibility** - Proper labels, focus management, and keyboard navigation
+## Viewer & Presentation
 
-## Customizing Deck Templates & Backgrounds
+- `src/components/DeckViewer.tsx` renders slides, handles keyboard navigation, and contains a Present mode (fullscreen with fallback to a presenter window `#deck=<id>&present=1`).
+- The Present mode uses a `stageRef` container and a `useFullscreen` hook; if requestFullscreen is unavailable, the presenter opens a new tab and the other tab auto-presents.
+- Hotkeys are supported via `useSlideHotkeys` (←/→, Space, B, Esc, Home, End).
+- Watermarks were removed from both UI and exports (free/demo decks no longer overlay tiled watermarks).
 
-- To add or edit slide templates, update `lib/deckTemplates.ts`.
-4. **🎨 Template Mapping** - Form data is mapped to JSON slide templates (`lib/deckTemplates.ts`). A deterministic `utils/generateDeckJSON.ts` is available for fast demo generation without LLMs.
-5. **⚡ Instant Generation** - `utils/generatePitchDeckPPTX.ts` creates a PowerPoint deck in-browser using `pptxgenjs`. The PPTX exporter chooses a high-contrast text color (black or white) per-slide to maximize legibility; the exporter intentionally does not add semi-opaque text boxes.
-6. **📁 Demo Wiring** - The app persists generated deck JSON to `sessionStorage` and mounts a `DeckViewer` when the URL hash contains `#deck=<id>` (see `src/main.tsx`).
+## PPTX Export
 
-### Troubleshooting
+- Export is implemented in `src/components/DeckViewer.tsx` (dynamic import of `pptxgenjs`).
+- The exporter prefers theme assets from `deck.meta.themeAssets` and per-slide `textTone` to choose high-contrast text colors (black/white). Exports avoid semi-opaque scrims so slides remain editable in PowerPoint.
 
-- Vite import error: if you see "Failed to resolve import './utils/generateDeckJSON' from 'src/App.tsx'", ensure the file exists at `utils/generateDeckJSON.ts` (project root `utils`) and that `src/App.tsx` imports it relatively as `../utils/generateDeckJSON` (that path is used in this repo).
-- If PPTX text looks low-contrast, the exporter falls back to black/white. For image backgrounds, cross-origin images may prevent automatic sampling — explicit metadata `coverTextColor` / `contentTextColor` are used as a fallback.
+## Files of interest
+- `src/hooks/useGenerateDeck.ts` — main generator hook (deterministic deck builder + optional Gemini enhancement + persistence + announcements)
+- `src/components/DeckFormModal.tsx` — multi-step intake form and submit flow
+- `src/components/LoadingScreen.tsx` — loading UI that listens for deck-ready events
+- `src/components/DeckViewer.tsx` — viewer + PPTX export + Present mode
+- `src/hooks/useFullscreen.ts` / `src/hooks/useSlideHotkeys.ts` — helper hooks for presentation features
 
-**Phase 1: Intake Form** ✅ **COMPLETE**
-- Multi-step form with validation
- ## 🚀 Development Status (short)
+## Development notes
+- To avoid popup blockers, the form opens the placeholder window synchronously and passes it to the generator so it can receive `postMessage` updates.
+- LoadingScreen now updates its UI from `DECK_STATUS` messages so users see short progress steps while the generator runs.
+- When the app sets `location.hash` to `#deck=...` or `#deckdata=...`, `src/main.tsx` re-runs boot logic on page load and mounts the viewer.
 
- - Multi-step intake form: Complete (`src/components/DeckFormModal.tsx`).
- - Deterministic deck JSON generator: Implemented (`utils/generateDeckJSON.ts`) for demo workflows (no LLM required).
- - Deck viewer component: Present (`src/components/DeckViewer.tsx`) — renders slide cards in the browser. Small wiring remains to persist and route generated decks for a hash-based viewer demo.
- - PPTX export: Implemented (`utils/generatePitchDeckPPTX.ts`) and improved — exported text uses black or white chosen for max contrast; semi-opaque text boxes were intentionally removed so slides remain visually clean.
- - Outbound email / Resend, PDF export, Stripe paywall, event pipeline: Not implemented (stubs/deps may be present in package.json).
- - Deck viewer component: Present (`src/components/DeckViewer.tsx`) — renders slide cards in the browser and supports download.
- - Deterministic deck JSON generator: Implemented (`utils/generateDeckJSON.ts`) and wired to the demo flow (App -> sessionStorage -> `/#deck=<id>` -> `DeckViewer`).
- - PPTX export: Implemented (`utils/generatePitchDeckPPTX.ts`) and improved — exported text uses black or white chosen for max contrast; semi-opaque text boxes were intentionally removed so slides remain visually clean.
- - Outbound email / Resend, PDF export, Stripe paywall, event pipeline: Not implemented (stubs/deps may be present in package.json).
+## Troubleshooting
+- If you get stuck on the loading screen, check the browser console for BroadcastChannel / postMessage messages and ensure that `deck:last` appears in `localStorage` for the generated id.
 
- See `PHASES.md` for a more detailed phase-by-phase breakdown and next steps.
-- Enhanced deck templates
-- Multiple theme options
-- Advanced customization features
+## Development status
+See `PHASES.md` for an up-to-date phase-by-phase breakdown.
 
-## 🤝 Contributing
+---
 
-We welcome contributions! Please feel free to submit a Pull Request.
+## Contributing
 
-## 📄 License
+Contributions welcome — open a PR with focused changes. Keep changes small and include a short description of manual verification steps.
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+## License
 
-## 🙏 Acknowledgments
-
-- Built by founders for founders
-- Inspired by the need for rapid pitch deck creation
-- Special thanks to the open-source community for the amazing tools and libraries
+MIT
