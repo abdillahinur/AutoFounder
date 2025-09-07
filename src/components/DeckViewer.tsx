@@ -1,9 +1,8 @@
 import { useRef, useState, useEffect } from 'react';
 import { useTextTone } from '../hooks/useTextTone';
-import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, FileText, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, FileText, Users, Eye } from 'lucide-react';
 import { useFullscreen } from '../hooks/useFullscreen';
 import { useSlideHotkeys } from '../hooks/useSlideHotkeys';
-import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye, FileText } from 'lucide-react';
 import { SlideFrame } from './SlideFrame';
 import type { SlideFormat } from '../constants/slide';
 import type { Deck } from '../../utils/generateDeckJSON';
@@ -69,10 +68,7 @@ export default function PPTViewer({ deck, isProUser = false, initialPresent = fa
   const slides = deck.slides || [];
   const currentSlideData = slides[currentSlide];
 
-  // Allow forcing free downloads via Vite env: VITE_FORCE_FREE_DOWNLOAD=true
-  const FORCE_FREE = (import.meta as any).env?.VITE_FORCE_FREE_DOWNLOAD === 'true';
-  const isPaid = FORCE_FREE ? true : !!(deck as any)?.meta?.isPaid;
-
+  // Vite env option for forcing free downloads removed (not used here)
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
   };
@@ -644,6 +640,7 @@ export default function PPTViewer({ deck, isProUser = false, initialPresent = fa
         </div>
       )}
 
+    </div>
     </div>
   );
 }
