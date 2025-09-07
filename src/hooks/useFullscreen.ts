@@ -39,3 +39,5 @@ export function useFullscreen<T extends HTMLElement>() {
 
   return { isFullscreen, enter, exit };
 }
+
+export default useFullscreen;

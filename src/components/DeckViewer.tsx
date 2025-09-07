@@ -1,6 +1,9 @@
 import { useRef, useState, useEffect } from 'react';
 import { useTextTone } from '../hooks/useTextTone';
 import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, FileText, Users } from 'lucide-react';
+import { useFullscreen } from '../hooks/useFullscreen';
+import { useSlideHotkeys } from '../hooks/useSlideHotkeys';
+import { ChevronLeft, ChevronRight, Download, Edit3, Crown, Lock, Eye, FileText } from 'lucide-react';
 import { SlideFrame } from './SlideFrame';
 import type { SlideFormat } from '../constants/slide';
 import type { Deck } from '../../utils/generateDeckJSON';
@@ -281,6 +284,13 @@ export default function PPTViewer({ deck, isProUser = false, initialPresent = fa
                 >
                   <Users className="w-4 h-4" />
                   <span>Match with Investors</span>
+                </button>
+                <button
+                  onClick={startPresent}
+                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  <Eye className="w-4 h-4 text-current" />
+                  <span>Present</span>
                 </button>
                 <button
                   onClick={handleDownload}
